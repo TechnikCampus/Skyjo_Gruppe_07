@@ -1,1 +1,1 @@
-from network import connect_to_server
+from .network import connect_to_server

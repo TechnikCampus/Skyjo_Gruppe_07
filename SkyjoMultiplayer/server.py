@@ -6,10 +6,10 @@ import pygame
 server = svr.start_socket()
 
 pygame.init()
-clock = pygame.time.clock()
+clock = pygame.time.Clock()
 
 while True:
-    
+
     clock.tick(60)
     svr.create_client_thread(server)
 

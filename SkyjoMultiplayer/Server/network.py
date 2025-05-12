@@ -23,8 +23,6 @@ def create_client_thread(server): # überprüft neue Vebindungen und erstellt ei
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
         pass
 
-
-
 def compress_data():   # benutzt Pickle Modul um Daten senden zu können (senden als Dictionary)
     pass
 
