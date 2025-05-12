@@ -1,6 +1,9 @@
 ##### Game logic functions on the server #####
 
 player_counter = 0
+lobby = []                     # Liste mit Spielern in der Lobby
+player_list = []               # Liste mit Spielern die gerade Spielen
+
 
 def update_game_state():  # updatet den Spielzustand
     pass

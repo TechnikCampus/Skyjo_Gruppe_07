@@ -1,7 +1,10 @@
 ##### Client network functions #####
+import socket
 
 def connect_to_server():      # erzeugt verbindung zum Server
-    pass
+    sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sock.connect(('Hier IP eingeben',65432))
+    return sock
 
 def compress_data():          # Daten komprimieren mit Pickle Modul
     pass
