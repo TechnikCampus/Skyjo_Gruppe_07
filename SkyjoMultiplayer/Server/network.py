@@ -28,7 +28,7 @@ def send_to_client(game_state,conn):    # sendet dictionary mit Daten an Client
     message_to_client = {
                         "Game Round" : game_state.round,
                         "Player Number": game_state.player_counter,
-                        "Discard Pile" : game_state.dicard_pile,
+                        "Discard Pile" : game_state.discard_pile,
                         "Draw Pile" : game_state.draw_pile,
                         "Players" : game_state.player_list
                         }
@@ -44,11 +44,11 @@ def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
         return None
 
 def handle_client(conn,addr,game_state,client_messages):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
-
-    send_to_client(game_state,conn)  # die wichtigen (und öfftl. !) Daten von game_state werden an die clients geschickt
-    message = receive_from_client(conn)   # von client einen "Befehl" empfangen
-    if message:
-        client_messages.put((addr,message))   # diesen Befehl in die Queue anhängen (threadsicher)
+    while True:
+        send_to_client(game_state,conn)  # die wichtigen (und öfftl. !) Daten von game_state werden an die clients geschickt
+        message = receive_from_client(conn)   # von client einen "Befehl" empfangen
+        if message:
+            client_messages.put((addr,message))   # diesen Befehl in die Queue anhängen (threadsicher)
 
     """
 

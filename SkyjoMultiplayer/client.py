@@ -9,7 +9,7 @@ sock = clnt.connect_to_server()
 
 while True:
 
-    clock.tick(60)
+    #clock.tick(60)   # wird für diesen Test nicht gebraucht
 
     # Testprogramm #
     message = input("Was ist deine Nachricht an den Server")
