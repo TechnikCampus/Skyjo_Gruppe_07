@@ -4,10 +4,14 @@ class Game_state():
 
     def __init__(self):
         
-        self.round          # speichert die derzeitige Runde
-        self.draw_counter   # Zugcounter, siehe Struktogramm
-        self.final_phase    # Ist das Spiel in der Endphase?
-        self.next_player
+        self.round = 0         # speichert die derzeitige Runde
+        self.player_counter = 0
+        self.draw_counter = 0 # Zugcounter, siehe Struktogramm
+        self.final_phase = False  # Ist das Spiel in der Endphase?
+        self.active_player = None
+        self.player_list = []               # Liste mit Spielern die gerade Spielen
+        self.discard_pile = []
+        self.draw_pile = []
 
     def shuffle_cards(self):   # benutzt Random zum Mischen der Karten
         pass
@@ -33,7 +37,7 @@ class Game_state():
     def select_active_player(self):   # den nächsten Spieler festlegen der am Zug ist, auch zu Beginn des Spiels
         pass
 
-    def analyse_player_move(self):    # analysiert/überprüft was der aktive Spieler machen will und führt das aus wenn erlaubt
+    def make_player_move():    # analysiert/überprüft was der aktive Spieler machen will und führt das aus wenn erlaubt
         pass
 
     def start_new_round(self):

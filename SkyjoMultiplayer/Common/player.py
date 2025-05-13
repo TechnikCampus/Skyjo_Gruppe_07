@@ -3,7 +3,8 @@
 class Player():
 
     def __init__(self):
-        
+
+        self.ip_addr = ""
         self.round_score      # Rundenpunktzahl des Spielers
         self.total_score      # Gesamtpunktzahl des Spielers
         self.card_deck = []   # Kartendeck des Spielers als 4 x 3 Liste
