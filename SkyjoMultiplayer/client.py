@@ -3,28 +3,14 @@ import pygame
 import Client as clnt
 import pickle
 
+client_name = "Jonas"
+
 pygame.init()
 clock = pygame.time.Clock()
-sock = clnt.connect_to_server()
+sock = clnt.connect_to_server(client_name)
 
 while True:
 
-    #clock.tick(60)   # wird für diesen Test nicht gebraucht
-
-    # Testprogramm #
-    message = input("Was ist deine Nachricht an den Server")
-    serialised = {"msg": message}
-    sock.sendall(pickle.dumps(serialised))
-
-    try:
-        data = sock.recv(4096)  # groß genug für Dictionary
-        message_from_server = pickle.loads(data)
-
-        # Ausgabe der empfangenen Daten
-        print("Nachricht vom Server:")
-        for key, value in message_from_server.items():
-            print(f"{key}: {value}")
-    except:
-        print("Konnte nichts empfangen")
-
-    # Tesprogramm #
+    clock.tick(60)
+    clnt.send_to_server(sock,clnt.get_Player_Input(),client_name)
+    received = clnt.receive_from_server(sock)                         # enthält nun den vom Server gesendeten game_state

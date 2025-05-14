@@ -5,11 +5,13 @@ class Player():
     def __init__(self):
 
         self.ip_addr = ""
-        self.round_score      # Rundenpunktzahl des Spielers
-        self.total_score      # Gesamtpunktzahl des Spielers
-        self.card_deck = []   # Kartendeck des Spielers als 4 x 3 Liste
-        self.is_active        # Ist der Spieler am Zug?
-        self.is_admin         # ist der Spieler ein Admin? Admins können Spiel starten
+        self.name =""           # Der Name dieses Spielers
+        self.is_online = False  # speichert ob der Spieler Online ist
+        self.round_score        # Rundenpunktzahl des Spielers
+        self.total_score        # Gesamtpunktzahl des Spielers
+        self.card_deck = []     # Kartendeck des Spielers als 4 x 3 Liste
+        self.is_active          # Ist der Spieler am Zug?
+        self.is_admin           # ist der Spieler ein Admin? Admins haben Sonderrechte
 
     def flip_card(self):    # deckt eine Karte auf
         pass

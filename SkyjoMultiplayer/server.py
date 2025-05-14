@@ -9,30 +9,33 @@ server = svr.start_socket()     # startet einen Server
 game_state = cmn.Game_state()   # erzeugt eine Instanz von game_state
 client_messages = Queue()       # startet eine Queue für threadsichere Datenverarbeitung
 
+
 pygame.init()
 clock = pygame.time.Clock()
 
 while True:
 
-    clock.tick(10)     # zu testzwecken verlangsamt! normal: 60 FPS
+    clock.tick(60)
 
     svr.create_client_thread(server,game_state,client_messages)     # auf neue verbindungen überprüfen, falls da einen 
                                                                     # Thread starten
-
-    # Testprogramm #
-
-    game_state.round += 0.1
-
-    # Testprogramm #
     
     while not client_messages.empty():               # die Queue mit Client Nachrichten durchgehen 
-        addr,msg = client_messages.get()            
 
-        # Testprogramm #
+        message = client_messages.get() 
 
-        print(f"{addr} sagt: {msg}")    # Queue Nachrichten ausgeben
+        # message[0] zeigt um welche "Art" Nachricht aus den Threads es sich handelt
+        # message[1] gibt den Spielername an
 
-        # Testprogramm #
+        if message[0] == "Online Again":        # hier nun player_list durchsuchen und beim betroffenen Spieler .is_online anpassen
+            pass 
+        elif message[0] == "New Player":        # hier nun einen neuen Spieler hinzufügen mit message[1] als Name
+            pass
+        elif message[0] == "Lost connection":   # hier nun player_list durchsuchen und beim betroffenen Spieler .is_online anpassen
+            pass
+        elif message[0] == "Client info":       # hier nun die Client Info (also "Befehle" vom Client ausführen)
+            pass       
+
 
 
 
