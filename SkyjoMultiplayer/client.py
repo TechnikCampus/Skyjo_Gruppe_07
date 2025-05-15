@@ -4,6 +4,8 @@ import Client as clnt
 import pickle
 import sys
 
+pygame.init()
+
 # Test:
 
 screen = pygame.display.set_mode((400, 300))
@@ -14,7 +16,7 @@ clock = pygame.time.Clock()
 # Test
 
 client_name = "Jonas"
-pygame.init()
+
 clock = pygame.time.Clock()
 sock = clnt.connect_to_server(client_name)
 
@@ -44,7 +46,11 @@ while True:
     clnt.send_to_server(sock,send_list,client_name)
 
     received = clnt.receive_from_server(sock)
+    if not received:
+        break
+    print(received)
 
+    """
     debugging_screen = {
 
         f"Round counter: {received["Game_Round"]}",
@@ -55,22 +61,8 @@ while True:
     for i, line in enumerate(debugging_screen):
         text_surface = font.render(line, True, (255, 255, 255))  # Weißer Text
         screen.blit(text_surface, (10, 10 + i * 30))
-
-    screen.fill(0,0,0)
+    """
+    screen.fill((0,0,0))
     pygame.display.flip()
 
     # Test
-
-    """
-    clock.tick(60)
-    received = clnt.receive_from_server(sock)                         # enthält nun den vom Server gesendeten game_state
-
-    # Test:
-    
-    print(f"Runde auf dem Server: {received.round}")
-    if received.round > 100:
-        clnt.send_to_server(sock,clnt.get_Player_Input(True),client_name)
-    else:
-        clnt.send_to_server(sock,clnt.get_Player_Input(True),client_name)
-
-    """
