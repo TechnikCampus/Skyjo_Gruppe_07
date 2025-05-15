@@ -2,16 +2,16 @@
 
 class Player():
 
-    def __init__(self):
+    def __init__(self,name):
 
         self.ip_addr = ""
-        self.name = ""           # Der Name dieses Spielers
+        self.name = name           # Der Name dieses Spielers
         self.is_online = False  # speichert ob der Spieler Online ist
-        self.round_score        # Rundenpunktzahl des Spielers
-        self.total_score        # Gesamtpunktzahl des Spielers
+        self.round_score = 0        # Rundenpunktzahl des Spielers
+        self.total_score = 0     # Gesamtpunktzahl des Spielers
         self.card_deck = []     # Kartendeck des Spielers als 4 x 3 Liste
-        self.is_active          # Ist der Spieler am Zug?
-        self.is_admin           # ist der Spieler ein Admin? Admins haben Sonderrechte
+        self.is_active = False        # Ist der Spieler am Zug?
+        self.is_admin = False         # ist der Spieler ein Admin? Admins haben Sonderrechte
 
     def flip_card(self):    # deckt eine Karte auf
         pass

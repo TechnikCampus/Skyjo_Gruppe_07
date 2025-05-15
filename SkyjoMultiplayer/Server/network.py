@@ -32,9 +32,9 @@ def create_client_thread(server,game_state,client_messages): # überprüft neue 
             return
 
         connections.append((conn,addr))
+        print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
         thread = threading.Thread(target=handle_client, args = (conn,addr,game_state,client_messages,new_client_name))    # thread wird gestartet der handle_client ausführt
         thread.start()
-        print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
         pass
 
@@ -94,7 +94,6 @@ def handle_client(conn,addr,game_state,client_messages,new_client_name):  # wird
             client_messages.put(("Client info",thread_player_name,message))   # diesen Befehl in die Queue anhängen (threadsicher)
         else:
             conn.close()
-            print(f"{thread_player_name} hat die Verbindung verloren!")
             client_messages.put(("Lost connection",thread_player_name))    # so dass game_state informiert werden kann
                                                                            # dass dieser Spieler verschwunden ist
             return

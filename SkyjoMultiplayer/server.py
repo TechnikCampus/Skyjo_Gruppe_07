@@ -24,18 +24,32 @@ while True:
         message = client_messages.get()
         if message[0] == "Online Again":        # hier nun player_list durchsuchen und beim betroffenen Spieler .is_online anpassen
             print(f"{message[1]} ist online wieder")
+            for player in game_state.player_list:
+                if player.name == message[1]:
+                    player.is_online = True
         elif message[0] == "New Player":        # hier nun einen neuen Spieler hinzufügen mit message[1] als Name
             print(f"{message[1]} hat sich verbunden!")
+            game_state.player_list.append(cmn.Player(message[1]))
+            for player in game_state.player_list:
+                player.is_online = True
         elif message[0] == "Lost connection":   # hier nun player_list durchsuchen und beim betroffenen Spieler .is_online anpassen
             print(f"{message[1]} hat die Verbindung verloren!")
+            for player in game_state.player_list:
+                if player.name == message[1]:
+                    player.is_online = False
         elif message[0] == "Client info":       # hier nun die Client Info (also "Befehle" vom Client ausführen)
-            print(f"Nachricht von {message[1]} 1: {message[2]["Take_from_discard_Pile"]} 2: {message[2]["Accept_Card"]} 3: {message[2]["Choose_Card"]}")
+
+            #print(message[2])
+            if message[2]['Take_from_discard_Pile'] == True:
+                game_state.round += 1
+
+            """
+            print(f"Nachricht von {message[1]} 1: {message[2]['Take_from_discard_Pile']} 2: {message[2]['Accept_Card']} 3: {message[2]['Choose_Card']}")
             if message[2]["Accept_Card"]:
                 game_state.round -= 1
             elif message[2]["Choose_card"]:
                 game_state.round += 1
-                
-
+            """
         # Test #
     """
     while not client_messages.empty():               # die Queue mit Client Nachrichten durchgehen 
