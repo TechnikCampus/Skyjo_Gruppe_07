@@ -38,14 +38,15 @@ def create_client_thread(server,game_state,client_messages): # überprüft neue 
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
         pass
 
-def send_to_client(game_state,conn):    # sendet dictionary mit Daten an Client
+def send_to_client(game_state,conn,player_name):    # sendet dictionary mit Daten an Client
     
     message_to_client = {
                         "Game Round" : game_state.round,
                         "Player Number": game_state.player_counter,
                         "Discard Pile" : game_state.discard_pile,
                         "Draw Pile" : game_state.draw_pile,
-                        "Players" : game_state.player_list
+                        "Players" : game_state.player_list,
+                        "Your Name": player_name
                         }
     conn.sendall(pickle.dumps(message_to_client))   # Sicherungsmechanismus bei verbindungsfehler im moment noch in
                                                     # handle_client, aber vorhanden
@@ -82,7 +83,7 @@ def handle_client(conn,addr,game_state,client_messages,new_client_name):  # wird
 
     while True:
         try:
-            send_to_client(game_state,conn)  # die wichtigen (und öfftl. !) Daten von game_state werden an die clients geschickt
+            send_to_client(game_state,conn,thread_player_name)  # die wichtigen (und öfftl. !) Daten von game_state werden an die clients geschickt
         except:
             conn.close()
             client_messages.put(("Lost connection",thread_player_name))

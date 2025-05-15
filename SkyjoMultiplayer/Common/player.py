@@ -5,7 +5,7 @@ class Player():
     def __init__(self):
 
         self.ip_addr = ""
-        self.name =""           # Der Name dieses Spielers
+        self.name = ""           # Der Name dieses Spielers
         self.is_online = False  # speichert ob der Spieler Online ist
         self.round_score        # Rundenpunktzahl des Spielers
         self.total_score        # Gesamtpunktzahl des Spielers
