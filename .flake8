@@ -1,3 +1,0 @@
-ignore = E501 # line too long
-
-ignore = E117 # over-indented
