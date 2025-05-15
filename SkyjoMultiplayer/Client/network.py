@@ -4,7 +4,7 @@ import pickle
 
 def connect_to_server(name):      # erzeugt verbindung zum Server
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    sock.connect(('192.168.0.133',65432))
+    sock.connect(('Hier Server IP eingeben',65432))
     name_of_client = {"Name": name}    
     sock.sendall(pickle.dumps(name_of_client)) # dem Server wird bei einer Neuverbindung der Name des neuen Clients mitgeteilt
     return sock

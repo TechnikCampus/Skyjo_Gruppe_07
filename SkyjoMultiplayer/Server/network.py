@@ -35,6 +35,7 @@ def create_client_thread(server,game_state,client_messages): # überprüft neue 
         print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
         thread = threading.Thread(target=handle_client, args = (conn,addr,game_state,client_messages,new_client_name))    # thread wird gestartet der handle_client ausführt
         thread.start()
+
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
         pass
 
@@ -48,8 +49,7 @@ def send_to_client(game_state,conn,player_name):    # sendet dictionary mit Date
                         "Players" : game_state.player_list,
                         "Your Name": player_name
                         }
-    conn.sendall(pickle.dumps(message_to_client))   # Sicherungsmechanismus bei verbindungsfehler im moment noch in
-                                                    # handle_client, aber vorhanden
+    conn.sendall(pickle.dumps(message_to_client))   
 
 def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
     
@@ -66,27 +66,30 @@ def handle_client(conn,addr,game_state,client_messages,new_client_name):  # wird
     # ansonsten Synchronisationsprobleme bei vielen Clients (vermutlich)
 
     thread_player_name = None
+
     for player in game_state.player_list:
+
         if new_client_name == player.name:                 # überprüfen ob schon ein Spieler mit diesem Namen vorhanden ist
+
             if not player.is_online:
-                thread_player_name = new_client_name      # thread_player_name aktualisieren ohne neuen
-                                                          # Spieler zu erstellen
-                client_messages.put(("Online Again",thread_player_name))
+                thread_player_name = new_client_name      
+                client_messages.put(("Online Again",thread_player_name))    # Server über Rückkehr informieren
             else:
-                print(f"Fehler: {new_client_name} existiert schon und ist online!")
+                print(f"Fehler: {new_client_name} existiert schon und ist online!")    # Verbindung ablehnen, Threadschleife endet
                 conn.close()
                 return
 
     if not thread_player_name:
         thread_player_name = new_client_name
-        client_messages.put(("New Player", thread_player_name))   # falls nicht: Server.py signalisieren dass ein neuer Spieler da
+        client_messages.put(("New Player", thread_player_name))   #Server signalisieren dass ein neuer Spieler da ist
 
     while True:
         try:
-            send_to_client(game_state,conn,thread_player_name)  # die wichtigen (und öfftl. !) Daten von game_state werden an die clients geschickt
+            send_to_client(game_state,conn,thread_player_name)  # die wichtigen Daten von game_state werden an die clients geschickt
         except:
             conn.close()
-            client_messages.put(("Lost connection",thread_player_name))
+            client_messages.put(("Lost connection",thread_player_name))     # Bei Fehler beim senden, Server informieren
+                                                                            # und Verbidnung trennen
             print("Fehler beim senden an client")
             
         message = receive_from_client(conn)   # von client einen "Befehl" empfangen
