@@ -1,0 +1,40 @@
+Anleitung für bisherige Netzwerkfunktionen: (stand: 17.5.2025)
+
+-------------------------------------------------------------------------------------------------------------------------------
+client.py:
+
+Verbindungsaufbau:
+
+1. Client einen Namen geben: client_name = "Jonas"
+
+2. Verbindung zu Server erstellen mit sock = clnt.connect_to_server(client_name)
+
+Hauptschleife:
+
+1. send_list mit "Befehlen" füllen die gesendet werden sollen, Befehle sind aufgebaut wie z.B. ("take_from_discard_pile",True)
+
+2. send_list an Server senden: clnt.send_to_server(sock,send_list,client_name)
+
+3. Vom Server empfangen: received = clnt.receive_from_server(sock)
+
+4. received enthält nun den Speilzustand der vom Server gesendet wurde, Zugriff mit z.B. received.get("Game Round")
+
+--------------------------------------------------------------------------------------------------------------------------------
+Server.py:
+
+Starten:
+
+1. Server starten mit: server = svr.start_socket()
+
+2. Queue starten mit client_queue = Queue()
+
+Hauptschleife:
+
+1. Auf neue Verbindungen prüfen: svr.create_client_thread(server,game_state,client_queue)
+
+2. Die Client Queue abarbeiten bis sie leer ist mit while not client_queue.empty():
+
+   - client_message = client_queue.get() aufrufen in der while not client_queue.empty() - Schleife
+   - Falls client_message[0] == "Client info", kann mit client_message[2].get() auf die Inhalte von send_list (kommt von Client)
+     zugegriffen werden, z.B client_message[2].get("take_from_discard_pile") dabei ist client_message[1] der Spielername
+

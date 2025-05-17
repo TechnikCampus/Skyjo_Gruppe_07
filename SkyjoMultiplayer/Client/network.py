@@ -20,14 +20,13 @@ def receive_from_server(sock):    # Daten vom Server verarbeiten
         return None
 
 
-def send_to_server(sock,player_info,player_name):         # Daten an server senden
+def send_to_server(sock,player_parameters,player_name):         # Daten an server senden
     
-    info = {
-            'Player_Name': player_name,
-            'Take_from_discard_Pile': player_info[0],
-            'Accept_Card': player_info[1],
-            'Choose_Card': player_info[2]                 # während Gameloop den Server mit "Befehlen" updaten
-            }                                             # Server entscheidet selbst ob er sie ausführt oder nicht
+    info = {'Player Name': player_name} 
+
+    for parameter in player_parameters:
+        info[parameter[0]] = parameter[1]
+        
     try:
         sock.sendall(pickle.dumps(info))
     except:

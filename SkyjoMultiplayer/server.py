@@ -15,7 +15,7 @@ pygame.init()
 while True:
 
     svr.create_client_thread(server,game_state,client_queue)     # auf neue verbindungen überprüfen, falls da einen 
-                                                                     # Thread starten
+                                                                 # Thread starten
 
     while not client_queue.empty():     # In dieser Schleife werden Client-Anfragen verarbeitet
 
@@ -50,6 +50,14 @@ while True:
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
             pass
+            
+            # Hier die Befehle des Clients importieren! Befehle des Clients als Dictionary mit
+            # unterschiedlichen Parametern.
+
+            # client_message[1] = Name des Clients
+
+            # Untersuchung eines Befehls(Beispiel):
+            # client_message[2].get("take_from_discard_pile", False)
 
 
 

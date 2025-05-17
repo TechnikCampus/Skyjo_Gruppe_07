@@ -21,8 +21,23 @@ while True:
             pygame.quit()
             sys.exit()
 
-    send_list = []                                          # Liste mit Dingen die an den Server gesendet werden sollen
-                                                            # siehe Client\network.py -> def send_to_server
+    send_list = []
+
+    # send_list enthält Parameter-Wert Paare die an den Server gesendet werden sollen
+    # Beispiel:
+
+    """
+    send_list = [
+
+        ("take_from_discard_pile",True)
+        ("flip_card",(4,7))
+
+    ]
+    
+    """
+
+    # send_list kann auch leer sein wenn nichts gesendet werden muss
+    
     clnt.send_to_server(sock,send_list,client_name)         
 
     received = clnt.receive_from_server(sock)               # empfängt den aktuellen Spielzustand vom Server

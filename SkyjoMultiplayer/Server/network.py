@@ -43,12 +43,14 @@ def send_to_client(game_state,conn,player_name):    # sendet dictionary mit Date
     
     message_to_client = {
                         "Game Round" : game_state.round,
+                        "Draw Counter": game_state.draw_counter,
                         "Player Number": game_state.player_counter,
                         "Discard Pile" : game_state.discard_pile,
                         "Draw Pile" : game_state.draw_pile,
                         "Players" : game_state.player_list,
                         "Your Name": player_name
                         }
+    
     conn.sendall(pickle.dumps(message_to_client))   
 
 def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
@@ -89,9 +91,9 @@ def handle_client(conn,addr,game_state,client_messages,new_client_name):  # wird
         except:
             conn.close()
             client_messages.put(("Lost connection",thread_player_name))     # Bei Fehler beim senden, Server informieren
-                                                                            # und Verbidnung trennen
-            print("Fehler beim senden an client")
-            
+            print("Fehler beim senden an client")                           # und Verbidnung trennen
+            return                                                               
+
         message = receive_from_client(conn)   # von client einen "Befehl" empfangen
         if message:
             client_messages.put(("Client info",thread_player_name,message))   # diesen Befehl in die Queue anhängen (threadsicher)
