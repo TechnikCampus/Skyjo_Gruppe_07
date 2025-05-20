@@ -19,6 +19,7 @@ class Player:
 class Game_state:
 
     def __init__(self):
+        self.name = ""
         self.round = 0
         self.player_counter = 0
         self.draw_counter = 0

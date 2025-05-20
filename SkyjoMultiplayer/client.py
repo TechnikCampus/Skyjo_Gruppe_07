@@ -9,9 +9,10 @@ pygame.init()
 clock = pygame.time.Clock()
 
 client_name = "Hier Client Name eingeben (Test)"
+client_game = "Hier den Namen der gewünschten Lobby eingeben (Test)"
 
 clock = pygame.time.Clock()
-sock = clnt.connect_to_server(client_name)
+sock = clnt.connect_to_server(client_name,client_game)
 
 while True:
 
@@ -38,7 +39,7 @@ while True:
 
     # send_list kann auch leer sein wenn nichts gesendet werden muss
     
-    clnt.send_to_server(sock,send_list,client_name)         
+    clnt.send_to_server(sock,send_list,client_name,client_game)         
 
     received = clnt.receive_from_server(sock)               # empfängt den aktuellen Spielzustand vom Server
     if not received:
