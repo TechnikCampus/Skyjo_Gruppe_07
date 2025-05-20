@@ -48,7 +48,7 @@ while True:
         
         elif client_message[0] == "New Game":
             print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1]}")
-            new_game = cmn.game_state()
+            new_game = cmn.Game_state()
             new_game.name = client_message[1]
             game_list.append(new_game)
 
@@ -62,7 +62,12 @@ while True:
                             player.is_online = False               # ein Spieler hat die Verbindung verloren
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
+            #print(client_message[2])
             pass
+
+        if game_list[0]:
+            game_list[0].round += 0.01
+            print(game_list[0].round)
             
             # Hier die Befehle des Clients importieren! Befehle des Clients als Dictionary mit
             # unterschiedlichen Parametern.
