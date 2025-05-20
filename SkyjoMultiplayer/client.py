@@ -8,15 +8,15 @@ pygame.init()
 
 clock = pygame.time.Clock()
 
-client_name = "Hier Client Name eingeben (Test)"
-client_game = "Hier den Namen der gewünschten Lobby eingeben (Test)"
+client_name = "Jonas"
+client_game = "Lobbyname123"
 
 clock = pygame.time.Clock()
 sock = clnt.connect_to_server(client_name,client_game)
 
 while True:
 
-    clock.tick(60)
+    #clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -27,22 +27,22 @@ while True:
     # send_list enthält Parameter-Wert Paare die an den Server gesendet werden sollen
     # Beispiel:
 
-    """
+
     send_list = [
-
-        ("take_from_discard_pile",True)
+        ("take_from_discard_pile",True),
         ("flip_card",(4,7))
-
     ]
     
-    """
-
     # send_list kann auch leer sein wenn nichts gesendet werden muss
     
     clnt.send_to_server(sock,send_list,client_name,client_game)         
+    
+    received = clnt.receive_from_server(sock)
 
-    received = clnt.receive_from_server(sock)               # empfängt den aktuellen Spielzustand vom Server
+    print(received)
+
     if not received:
         break
+
 
 

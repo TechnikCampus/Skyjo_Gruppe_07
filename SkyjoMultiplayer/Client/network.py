@@ -2,31 +2,33 @@
 import socket
 import pickle
 
-def connect_to_server(name):      # erzeugt verbindung zum Server
+def connect_to_server(name,game):      # erzeugt verbindung zum Server
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    sock.connect(('Hier Server IP eingeben',65432))
-    name_of_client = {"Name": name}    
-    sock.sendall(pickle.dumps(name_of_client)) # dem Server wird bei einer Neuverbindung der Name des neuen Clients mitgeteilt
+    sock.connect(('192.168.0.133',65432))
+    client_data = {"Name": name, "Game":game}    
+    sock.sendall(pickle.dumps(client_data)) # dem Server wird bei einer Neuverbindung der Name des neuen Clients mitgeteilt
     return sock
 
-def receive_from_server(sock):    # Daten vom Server verarbeiten
+def receive_from_server(sock):    # Daten vom Server empfangen
     
     try:
         received = pickle.loads(sock.recv(4096))
         return received
     except:
         print("Fehler beim empfangen vom Server!")
-        sock.close()
+        #sock.close()
         return None
 
 
-def send_to_server(sock,player_parameters,player_name):         # Daten an server senden
+def send_to_server(sock,player_parameters,player_name,player_game):         # Daten an server senden
     
-    info = {'Player Name': player_name} 
+    info = {'Player Name': player_name,
+            'Player Game': player_game} 
 
     for parameter in player_parameters:
         info[parameter[0]] = parameter[1]
-        
+
+    print(info)  
     try:
         sock.sendall(pickle.dumps(info))
     except:
