@@ -9,7 +9,7 @@ pygame.init()
 clock = pygame.time.Clock()
 
 client_name = "Jonas"
-client_game = "Lobbyname123"
+client_game = "NeueLobby"
 
 clock = pygame.time.Clock()
 sock = clnt.connect_to_server(client_name,client_game)
@@ -38,8 +38,6 @@ while True:
     clnt.send_to_server(sock,send_list,client_name,client_game)         
     
     received = clnt.receive_from_server(sock)
-
-    print(received)
 
     if not received:
         break

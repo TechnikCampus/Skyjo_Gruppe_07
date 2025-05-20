@@ -68,68 +68,41 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
     # In handle_client() nur über client_messages.put() game_state indirekt verändern!
     # ansonsten Synchronisationsprobleme bei vielen Clients (vermutlich)
 
-    thread_player_name = None
+    thread_player_name = None    # threadspezifische Variablen die den Client identifizieren
     thread_player_game = None
     thread_game = None
     
     for game in game_list:
         if game.name == new_client_game:
             thread_player_game = game.name
-            thread_game = game
+            thread_game = game                   # schauen ob ein Spiel mit diesem Namen schon vorhanden ist
+
     if not thread_player_game:
         thread_player_game = new_client_game
-        client_messages.put(("New Game",thread_player_game))
+        client_messages.put(("New Game",thread_player_game))    # server befehl geben ein neues Spiel zu erstellen
         while True:
             for game in game_list:
                 if game.name == thread_player_game:
                     thread_game = game
                     break
             if thread_game:
-                break
+                break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis an game_list angehängt ist
 
-    for player in thread_game.player_list:
+    for player in thread_game.player_list:     # schauen ob schon Spieler mit diesem namen da sind
         if new_client_name == player.name:
 
             if not player.is_online:
                 thread_player_name = new_client_name
-                client_messages.put(("Online Again",(thread_player_name,thread_player_game)))
+                client_messages.put(("Online Again",(thread_player_name,thread_player_game)))   # Spieler kehrt zurück, nach verbindungsverlust
             else:
-                print(f"Fehler: {new_client_name} existiert schon und ist online in: {thread_player_name}")
+                print(f"Fehler: {new_client_name} existiert schon und ist online in: {thread_player_game}")
                 conn.close()
-                return
+                return                    # Verbindung ablehnen, keine doppelte namensbelegungen
             
-    if not thread_player_name:
+    if not thread_player_name:                 # falls ganz neuer Name, neuen Spieler erstellen
         thread_player_name = new_client_name
         client_messages.put(("New Player", (thread_player_name,thread_player_game)))
 
-
-    """
-    for game in game_list:   # schauen ob ein Spiel mit diesem Namen schon läuft
-
-        if new_client_game == game.name:
-
-            for player in game.player_list:
-
-                if new_client_name == player.name:                 # überprüfen ob schon ein Spieler mit diesem Namen vorhanden ist
-
-                    if not player.is_online:
-                        thread_player_name = new_client_name
-                        thread_player_game = game
-                        client_messages.put(("Online Again",(thread_player_name,thread_player_game)))    # Server über Rückkehr informieren
-
-                    else:
-                        print(f"Fehler: {new_client_name} existiert schon und ist online in: {game.name}")    # Verbindung ablehnen, Threadschleife endet
-                        conn.close()
-                        return
-                    
-    if not thread_player_game:
-        thread_player_game = new_client_game
-        client_messages.put(("New Game",thread_player_game))      # Server signalisieren dass ein neues Spiel gestartet wurde
-
-    if not thread_player_name:
-        thread_player_name = new_client_name
-        client_messages.put(("New Player", (thread_player_name,thread_player_game)))  # Server signalisieren dass ein neuer Spieler da ist
-    """
     while True:
         
         try:
@@ -142,7 +115,7 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
 
         message = receive_from_client(conn)   # von client einen "Befehl" empfangen
         if message:
-            client_messages.put(("Client info",thread_player_name,message))   # diesen Befehl in die Queue anhängen (threadsicher)
+            client_messages.put(("Client info",thread_player_name,thread_player_game,message))   # diesen Befehl in die Queue anhängen (threadsicher)
         else:
             conn.close()
             client_messages.put(("Lost connection",(thread_player_name,thread_player_game)))    # so dass game_state informiert werden kann

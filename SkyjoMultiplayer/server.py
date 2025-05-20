@@ -15,7 +15,7 @@ pygame.init()
 while True:
 
     svr.create_client_thread(server,game_list,client_queue)     # auf neue verbindungen überprüfen, falls da einen 
-                                                                 # Thread starten
+                                                                # Thread starten
 
     while not client_queue.empty():     # In dieser Schleife werden Client-Anfragen verarbeitet
 
@@ -25,7 +25,7 @@ while True:
 
         # client_message[0]: Art der Nachricht
 
-        # client_message[1]: Name des Clients
+        # client_message[1]: Absender bzw. Spielname (siehe network.py)
 
         # client_message[2]: Verschiedene Spieldaten, siehe Client\network.py -> def send_to_server
         # (nur wenn client_messages[0] = "Client info")
@@ -34,22 +34,22 @@ while True:
             print(f"{client_message[1][0]} ist online wieder im Spiel : {client_message[1][1]}")
             for game in game_list:
                 for player in game.player_list:
-                    if player.name == client_message[1]:
+                    if player.name == client_message[1][0]:
                         player.is_online = True                # ein alter Spieler hat sich wieder verbunden!
 
         elif client_message[0] == "New Player":
             print(f"{client_message[1][0]} hat sich verbunden, ist in Spiel: {client_message[1][1]}")
             for game in game_list:
                 if game.name == client_message[1][1]:
-                    game.player_list.append(cmn.Player(client_message[1]))   # neue Instanz eines Spielers erstellen mit dem neuen Namen
+                    game.player_list.append(cmn.Player(client_message[1][0]))   # neue Instanz eines Spielers erstellen mit dem neuen Namen
                     for player in game.player_list:
                         if player.name == client_message[1][0]:
                             player.is_online = True                    # ein neuer Spieler hat sich verbunden
         
-        elif client_message[0] == "New Game":
+        elif client_message[0] == "New Game":                            # ein neues Spiel wurde erstellt!
             print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1]}")
-            new_game = cmn.Game_state()
-            new_game.name = client_message[1]
+            new_game = cmn.Game_state()                                   # neue Instanz von game_state
+            new_game.name = client_message[1]                             # anhängen an game_list
             game_list.append(new_game)
 
 
@@ -62,21 +62,17 @@ while True:
                             player.is_online = False               # ein Spieler hat die Verbindung verloren
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
-            #print(client_message[2])
             pass
 
-        if game_list[0]:
-            game_list[0].round += 0.01
-            print(game_list[0].round)
             
             # Hier die Befehle des Clients importieren! Befehle des Clients als Dictionary mit
             # unterschiedlichen Parametern.
 
-            # client_message[1][0] = Name des Clients
-            # client_message[1][1] = Name des Spiels in dem der Client ist
+            # client_message[1] = Name des Clients
+            # client_message[2] = Name des Spiels in dem der Client ist
 
             # Untersuchung eines Befehls(Beispiel):
-            # client_message[2].get("take_from_discard_pile", False)
+            # client_message[3].get("take_from_discard_pile", False)
 
 
 
