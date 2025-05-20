@@ -1,5 +1,6 @@
 import random
 
+"""
 class Player:
     def __init__(self, name):
         self.name = name
@@ -15,10 +16,12 @@ class Player:
         self.cards = []
         self.round_score = 0
         self.flipped_cards = 0
+"""
 
 class Game_state:
 
     def __init__(self):
+        self.name = ""
         self.round = 0
         self.player_counter = 0
         self.draw_counter = 0
