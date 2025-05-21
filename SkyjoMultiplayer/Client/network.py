@@ -2,11 +2,11 @@
 import socket
 import pickle
 
-def connect_to_server(name,game):      # erzeugt verbindung zum Server
+def connect_to_server(name,game,maxplayers):                # erzeugt verbindung zum Server
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.connect(('Hier IP Adresse des Servers',65432))
-    client_data = {"Name": name, "Game":game}    
-    sock.sendall(pickle.dumps(client_data)) # dem Server wird bei einer Neuverbindung der Name des neuen Clients mitgeteilt
+    client_data = {"Name": name, "Game":game, "Max Players": maxplayers}    # Spielername und Name des Spiels dem man beitreten möchte
+    sock.sendall(pickle.dumps(client_data))      # dem Server wird bei einer Neuverbindung der Name des neuen Clients mitgeteilt
     return sock
 
 def receive_from_server(sock):    # Daten vom Server empfangen

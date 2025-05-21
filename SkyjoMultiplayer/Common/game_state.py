@@ -20,10 +20,12 @@ class Player:
 
 class Game_state:
 
-    def __init__(self):
-        self.name = ""
+    def __init__(self,name,maxplayers):        # beim Start eines Spiels den Namen und die max. Spieleranzahl festlegen
+
+        self.name = name
         self.round = 0
         self.player_counter = 0
+        self.max_players = maxplayers
         self.draw_counter = 0
         self.final_phase = False
         self.active_player = None
@@ -96,7 +98,7 @@ class Game_state:
         elif move['action'] == 'flip':
             self.active_player.flip_card()
             return True
-        return False
+        return False                          
 
     def start_new_round(self):
         self.round += 1

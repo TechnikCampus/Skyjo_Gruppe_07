@@ -42,15 +42,21 @@ while True:
             for game in game_list:
                 if game.name == client_message[1][1]:
                     game.player_list.append(cmn.Player(client_message[1][0]))   # neue Instanz eines Spielers erstellen mit dem neuen Namen
+                    game.player_counter += 1                                    # Spielerzähler erhöhen
+                    if len(game.player_list) == 1:
+                        game.player_list[0].is_admin = True                     # Wenn der Spieler das Spiel erstellt hat wird er Admin
                     for player in game.player_list:
                         if player.name == client_message[1][0]:
-                            player.is_online = True                    # ein neuer Spieler hat sich verbunden
+                            player.is_online = True                             # ein neuer Spieler hat sich verbunden
         
-        elif client_message[0] == "New Game":                            # ein neues Spiel wurde erstellt!
-            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1]}")
-            new_game = cmn.Game_state()                                   # neue Instanz von game_state
-            new_game.name = client_message[1]                             # anhängen an game_list
-            game_list.append(new_game)
+        elif client_message[0] == "New Game":                                   # ein neues Spiel wurde erstellt!
+            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")                       
+            new_game = cmn.Game_state(client_message[1][0],client_message[1][1])          # neue Instanz von game_state
+
+            # client_message[1][0]: Spielname
+            # client_message[1][1]: max Spieleranzahl
+                                         
+            game_list.append(new_game)                 # anhängen an game_list
 
 
         elif client_message[0] == "Lost connection": 
@@ -63,10 +69,8 @@ while True:
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
             pass
-
             
-            # Hier die Befehle des Clients importieren! Befehle des Clients als Dictionary mit
-            # unterschiedlichen Parametern.
+            # Hier soll nun ausgeführt werden: Funktionen zur Verarbeitung des Spielerzugs! (siehe game_state)
 
             # client_message[1] = Name des Clients
             # client_message[2] = Name des Spiels in dem der Client ist
@@ -74,5 +78,19 @@ while True:
             # Untersuchung eines Befehls(Beispiel):
             # client_message[3].get("take_from_discard_pile", False)
 
+    # Nach Abprüfen und Verarbeiten der Client-Anfragen generelle Spiellogikfunktionen durchführen:
+
+    for game in game_list:
+
+        if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
+
+            # Spielstartlogik: Karten mischen usw.
+            svr.start_game(game)
+        
+        else:
+
+            # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
+            svr.update_game_state(game)
+            
 
 

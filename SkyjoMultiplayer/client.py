@@ -10,9 +10,10 @@ clock = pygame.time.Clock()
 
 client_name = "Jonas"
 client_game = "NeueLobby"
+max_players = 4
 
 clock = pygame.time.Clock()
-sock = clnt.connect_to_server(client_name,client_game)
+sock = clnt.connect_to_server(client_name,client_game,max_players)
 
 while True:
 

@@ -1,4 +1,4 @@
-Anleitung für bisherige Netzwerkfunktionen: (stand: 17.5.2025)
+Anleitung für bisherige Netzwerkfunktionen: (stand: 21.5.2025)
 
 -------------------------------------------------------------------------------------------------------------------------------
 client.py:
@@ -9,7 +9,9 @@ Verbindungsaufbau:
 
 2. Namen der Lobby zuweisen: client_game = "NeueLobby"
 
-3. Verbindung zu Server erstellen mit sock = clnt.connect_to_server(client_name,client_game)
+3. Maximale Spieleranzahl der Lobby festlegen (nur relevant bei neuer Lobby, wird ansonsten ignoriert!)
+
+4. Verbindung zu Server erstellen mit sock = clnt.connect_to_server(client_name,client_game,max_players)
    bei sock.connect(('Hier IP Adresse des Servers',65432)) die IP Adresse des Servers eingeben
 
 Hauptschleife:
@@ -43,4 +45,8 @@ Hauptschleife:
    - Falls client_message[0] == "Client info", kann mit client_message[3].get() auf die Inhalte von send_list (kommt von Client)
      zugegriffen werden, z.B client_message[2].get("take_from_discard_pile") dabei ist client_message[1] der Spielername
      und client_message[2] der Name des Spiels in dem sich der Client befindet
+
+   - client_message[0] kann auch andere Strings enthalten, wenn neue Spieler beitreten, neue Spiele gestartet werden,
+   Verbindungen verloren gegangen sind oder Spieler wieder zurückgekommen sind!
+   - Diese Fälle werden spezifisch behandelt, siehe server.py
 
