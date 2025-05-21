@@ -22,6 +22,7 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
                                                                 # Name von neuer Verbindung untersuchen
             new_client_name = name_message.get("Name",None)
             new_client_game = name_message.get("Game",None)
+            max_player_count = name_message.get("Max Players",0)
         except:
             print("Fehler: Nichts empfangen von neuem Client")
             conn.close()
@@ -34,7 +35,7 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
 
         connections.append((conn,addr))
         print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
-        thread = threading.Thread(target=handle_client, args = (conn,addr,game_list,client_messages,new_client_name,new_client_game))    # thread wird gestartet der handle_client ausführt
+        thread = threading.Thread(target=handle_client, args = (conn,addr,game_list,client_messages,new_client_name,new_client_game,max_player_count))    # thread wird gestartet der handle_client ausführt
         thread.start()
 
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
@@ -63,7 +64,7 @@ def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
         print("Nichts empfangen")
         return None
 
-def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client_game):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
+def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client_game,maxplayers):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
     
     # In handle_client() nur über client_messages.put() game_state indirekt verändern!
     # ansonsten Synchronisationsprobleme bei vielen Clients (vermutlich)
@@ -79,15 +80,20 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
 
     if not thread_player_game:
         thread_player_game = new_client_game
-        client_messages.put(("New Game",thread_player_game))    # server befehl geben ein neues Spiel zu erstellen
+        client_messages.put(("New Game",(thread_player_game,maxplayers)))    # server befehl geben ein neues Spiel zu erstellen
         while True:
             for game in game_list:
                 if game.name == thread_player_game:
                     thread_game = game
                     break
             if thread_game:
-                break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis an game_list angehängt ist
+                break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis es sicher an game_list angehängt ist
 
+    if thread_game.player_counter == thread_game.max_players:
+        print(f"Fehler: {thread_player_game} ist bereits voll! ")
+        conn.close()
+        return                                 # erstmal schauen ob in dem Spiel noch Platz ist! Falls nein verbindung ablehnen
+    
     for player in thread_game.player_list:     # schauen ob schon Spieler mit diesem namen da sind
         if new_client_name == player.name:
 
@@ -97,7 +103,7 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
             else:
                 print(f"Fehler: {new_client_name} existiert schon und ist online in: {thread_player_game}")
                 conn.close()
-                return                    # Verbindung ablehnen, keine doppelte namensbelegungen
+                return                         # Verbindung ablehnen, keine doppelte namensbelegungen
             
     if not thread_player_name:                 # falls ganz neuer Name, neuen Spieler erstellen
         thread_player_name = new_client_name
