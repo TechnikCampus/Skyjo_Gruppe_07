@@ -1,3 +1,4 @@
+"""
 # Card-Klasse mit eingebetteten Bildern
 import base64  # Erforderlich für das Kodieren und Dekodieren von Bildern
 from io import BytesIO  # Erforderlich für die Verarbeitung von Bilddaten
@@ -33,6 +34,7 @@ CARD_BACK_IMAGE_MAPPING = {  # Zuordnung für das Kartenrückseitenbild
 
 KARTEN_BILDER = {}  # Wörterbuch zum Speichern der Kartenbilder
 
+
 def load_images_from_folder(folder_path):
     for card_value, file_name in CARD_IMAGE_MAPPING.items():  # Iteration über die Zuordnung
         file_path = os.path.join(folder_path, file_name)  # Erstellen des vollständigen Dateipfads
@@ -53,6 +55,7 @@ def get_image_from_base64(base64_string):
 current_dir = os.path.dirname(os.path.abspath(__file__))  # Aktuelles Verzeichnis
 karten_png_path = os.path.join(current_dir, "karten_png")  # Pfad zum Ordner "karten_png"
 load_images_from_folder(karten_png_path)  # Laden der Bilder aus dem Ordner
+"""
 
 class Card:
     def __init__(self, value, colour, visible=False, sizeX=100, sizeY=150):
