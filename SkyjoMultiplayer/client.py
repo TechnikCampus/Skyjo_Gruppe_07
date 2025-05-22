@@ -8,12 +8,12 @@ pygame.init()
 
 clock = pygame.time.Clock()
 
-client_name = "Jonas"
-client_game = "NeueLobby"
+client_name = ""
+client_game = ""
 max_players = 4
-
+ipadess = str(input("IP-Adresse des Servers: "))
 clock = pygame.time.Clock()
-sock = clnt.connect_to_server(client_name,client_game,max_players)
+sock = clnt.connect_to_server(client_name,client_game,max_players,ipadess)
 
 while True:
 
