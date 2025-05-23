@@ -65,10 +65,12 @@ class Card:
         self.sizeX = sizeX  # Breite der Karte
         self.sizeY = sizeY  # Höhe der Karte
         self.image = None  # Bild-Attribut der Karte
-
+        
+    """
     def flip(self):
         self.visible = not self.visible  # Deckt die Karte auf oder verdeckt sie
 
+    
     def set_image_from_embedded(self):
         base64_string = KARTEN_BILDER.get(self.value)  # Abrufen des Base64-Bildes
         if base64_string:
@@ -96,3 +98,4 @@ class Card:
 
     def __str__(self):
         return f"Card(value={self.value}, colour={self.colour}, visible={self.visible})"  # Technische Darstellung der Karte
+    """

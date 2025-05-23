@@ -75,9 +75,92 @@ while True:
             # client_message[1] = Name des Clients
             # client_message[2] = Name des Spiels in dem der Client ist
 
-            # Untersuchung eines Befehls(Beispiel):
-            # client_message[3].get("take_from_discard_pile", False)
 
+            ################################################################# 
+
+            if "Take from Discard Pile" in client_message[3]:
+
+                x,y = client_message[3].get("Take from Discard Pile")
+
+                if svr.check_for_permission(game_list,client_message[1],client_message[2],"Take from Discard Pile"):
+                    
+                    for game in game_list:
+                        if game.name == client_message[2]:
+                            for player in game.player_list:
+                                if player.name == client_message[1]:
+
+                                    if player.card_deck[x,y]:
+                                        player.card_deck[x][y], game.discard_pile[0] = game.discard_pile[0], player.card_deck[x][y]
+                                        game.discard_pile[0].visible = True
+
+                                    # Existiert die Karte?
+                                    # Karte von Ablagestapel mit der des Spielers tauschen
+                                    # Karte auf Ablagestapel aufdecken
+
+                                    # Hier fehlt: Nächsten Spieler zum Zug berechtigen
+
+            elif "Check Draw Pile" in client_message[3]:
+
+                if svr.check_for_permission(game_list,client_message[1],client_message[2],"Check Draw Pile"):
+
+                    for game in game_list:
+                        if game.name == client_message[2]:
+                            game.draw_pile[0].visible = True
+
+                            # Nachziehstapel aufdecken
+
+            elif "Take from Draw Pile" in client_message[3]:
+
+                x,y = client_message[3].get("Take from Draw Pile")
+
+                if svr.check_for_permission(game_list,client_message[1],client_message[2],"Take from Draw Pile"):
+
+                    for game in game_list:
+                        if game.name == client_message[2]:
+                            for player in game.player_list:
+                                if player.name == client_message[1]:
+
+                                    if player.card_deck[x][y]:
+                                        player.card_deck[x][y].visible = True
+                                        game.discard_pile[0] = player.card_deck[x][y]
+                                        player.card_deck[x][y] = game.draw_pile[0]
+                                        game.draw_pile.pop(0)
+
+                                        # Existiert die Karte
+                                        # Karte im Spielerdeck aufdecken
+                                        # In den Ablagestapel kopieren
+                                        # Karte vom Nachziehstapel in Kartendeck kopieren
+                                        # Oberste Karte vom Nachziehstapel entfernen
+
+                                        # Hier fehlt: Nächsten Spieler zum Zug berechtigen
+
+            elif "Flip Card" in client_message[3]:
+
+                x,y = client_message[3].get("Flip Card")
+
+                if svr.check_for_permission(game_list,client_message[1],client_message[2],"Flip Card"):
+
+                    for game in game_list:
+                        if game.name == client_message[2]:
+                            for player in game.player_list:
+                                if player.name == client_message[1]:
+
+                                    if player.card_deck[x][y]:
+                                        if not player.card_deck[x][y].visible: 
+                                            player.card_deck[x][y].visible = True
+                                            if player.is_active:
+                                                game.discard_pile.insert(0,game.draw_pile.pop(0))
+
+                                                # Hier fehlt: Nächsten Spieler zum Zug berechtigen
+
+                                    # Existiert die Karte?
+                                    # Falls noch nicht aufgdeckt aufdecken
+                                    # Karte vom Nachziehstapel auf Ablagestapel,
+                                    # wenn der Spieler gerade einen Zug gemacht hat, NICHT wenn
+                                    # es Rundenbeginn war und der Spieler der startet ausgewählt wird
+
+            #######################################################################
+                                
     # Nach Abprüfen und Verarbeiten der Client-Anfragen generelle Spiellogikfunktionen durchführen:
 
     for game in game_list:
@@ -85,7 +168,7 @@ while True:
         if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
 
             # Spielstartlogik: Karten mischen usw.
-            svr.start_game(game)
+            svr.start_game(game,cmn.card_set)
         
         else:
 
