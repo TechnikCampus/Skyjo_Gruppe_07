@@ -188,56 +188,57 @@ def main():
 
     while True:
         screen.fill(TURQUOISE)
-    
-        if state == "main":
-            draw_background_text()
-            draw_buttons()
-            reset_widgets()
+        
+        match state:
+            case "main":
+                draw_background_text()
+                draw_buttons()
+                reset_widgets()
 
-        elif state == "host":
-            # Widgets initialisieren, wenn noch nicht vorhanden
-            if not slider:
-                slider = Slider(screen, WIDTH // 2 - 150, HEIGHT // 2 + 140, 300, 30, min=2, max=4, step=1)
-                widgets.append(slider)
+            case "host":
+                # Widgets initialisieren, wenn noch nicht vorhanden
+                if not slider:
+                    slider = Slider(screen, WIDTH // 2 - 150, HEIGHT // 2 + 140, 300, 30, min=2, max=4, step=1)
+                    widgets.append(slider)
 
-            if not player_name_box:
-                player_name_box = TextBox(
-                    screen, WIDTH // 2 - 150, HEIGHT // 2 - 80, 300, 40, fontSize=20,
-                    borderColour=BLACK, textColour=BLACK,
-                    onSubmit=output, radius=10, borderThickness=2)
-                widgets.append(player_name_box)
+                if not player_name_box:
+                    player_name_box = TextBox(
+                        screen, WIDTH // 2 - 150, HEIGHT // 2 - 80, 300, 40, fontSize=20,
+                        borderColour=BLACK, textColour=BLACK,
+                        onSubmit=output, radius=10, borderThickness=2)
+                    widgets.append(player_name_box)
 
-            if not game_name_box:
-                game_name_box = TextBox(
+                if not game_name_box:
+                    game_name_box = TextBox(
+                        screen, WIDTH // 2 - 150, HEIGHT // 2, 300, 40, fontSize=20,
+                        borderColour=BLACK, textColour=BLACK,
+                        onSubmit=output, radius=10, borderThickness=2)
+                    widgets.append(game_name_box)
+                    
+
+                draw_spielerauswahl()
+
+            case "join":
+                # Widgets initialisieren, wenn noch nicht vorhanden
+                if not player_name_box:
+                    player_name_box = TextBox(
+                        screen, WIDTH // 2 - 150, HEIGHT // 2 - 80, 300, 40, fontSize=20,
+                        borderColour=BLACK, textColour=BLACK,
+                        onSubmit=output, radius=10, borderThickness=2)
+                    widgets.append(player_name_box)
+
+                if not game_name_box:
+                    game_name_box = TextBox(
                     screen, WIDTH // 2 - 150, HEIGHT // 2, 300, 40, fontSize=20,
                     borderColour=BLACK, textColour=BLACK,
                     onSubmit=output, radius=10, borderThickness=2)
                 widgets.append(game_name_box)
-                
 
-            draw_spielerauswahl()
+                draw_join()
 
-        elif state == "join":
-            # Widgets initialisieren, wenn noch nicht vorhanden
-            if not player_name_box:
-                player_name_box = TextBox(
-                    screen, WIDTH // 2 - 150, HEIGHT // 2 - 80, 300, 40, fontSize=20,
-                    borderColour=BLACK, textColour=BLACK,
-                    onSubmit=output, radius=10, borderThickness=2)
-                widgets.append(player_name_box)
-
-            if not game_name_box:
-                game_name_box = TextBox(
-                    screen, WIDTH // 2 - 150, HEIGHT // 2, 300, 40, fontSize=20,
-                    borderColour=BLACK, textColour=BLACK,
-                    onSubmit=output, radius=10, borderThickness=2)
-                widgets.append(game_name_box)
-
-            draw_join()
-
-        elif state == "lobby":
-            draw_lobby(lobby_server_name, lobby_player_count)
-            reset_widgets()
+            case "lobby":
+                draw_lobby(lobby_server_name, lobby_player_count)
+                reset_widgets()
 
         # Events verarbeiten
         events = pygame.event.get()
@@ -246,36 +247,40 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-            if state == "main" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mx, my = event.pos
-                for idx, (_, rect) in enumerate(buttons):
-                    if pygame.Rect(rect).collidepoint(mx, my):
-                        if idx == 0:
-                            state = "host"
-                        elif idx == 1:
-                            state = "join"
+            match state:
+                case "main":
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        mx, my = event.pos
+                        for idx, (_, rect) in enumerate(buttons):
+                            if pygame.Rect(rect).collidepoint(mx, my):
+                                if idx == 0:
+                                    state = "host"
+                                elif idx == 1:
+                                    state = "join"
 
-            elif state == "host" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if pygame.Rect(host_button_rect).collidepoint(event.pos):
-                    # Speichere die Eingaben in die globalen Variablen
-                    client_name = player_name_box.getText() if player_name_box else ""
-                    client_game = game_name_box.getText() if game_name_box else ""
-                    print(f"Spiel hosten mit {slider.getValue()} Spielern, Spielername: {client_name}, Spielname: {client_game}")
-                    # Hier ggf. zu "lobby" wechseln:
-                    # state = "lobby"
-                    # lobby_server_name = client_game
-                    # lobby_player_count = slider.getValue()
+                case "host":
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        if pygame.Rect(host_button_rect).collidepoint(event.pos):
+                            # Speichere die Eingaben in die globalen Variablen
+                            client_name = player_name_box.getText() if player_name_box else ""
+                            client_game = game_name_box.getText() if game_name_box else ""
+                            print(f"Spiel hosten mit {slider.getValue()} Spielern, Spielername: {client_name}, Spielname: {client_game}")
+                            # Hier ggf. zu "lobby" wechseln:
+                            # state = "lobby"
+                            # lobby_server_name = client_game
+                            # lobby_player_count = slider.getValue()
 
-            elif state == "join" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if pygame.Rect(join_button_rect).collidepoint(event.pos):
-                    # Speichere die Eingaben in die globalen Variablen
-                    client_name = player_name_box.getText() if player_name_box else ""
-                    client_game = game_name_box.getText() if game_name_box else ""
-                    print(f"Beitreten mit Spielername: {client_name}, Servername: {client_game}")
-                    # Hier ggf. zu "lobby" wechseln:
-                    # state = "lobby"
-                    # lobby_server_name = client_game
-                    # lobby_player_count = 1
+                case "join":
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        if pygame.Rect(join_button_rect).collidepoint(event.pos):
+                            # Speichere die Eingaben in die globalen Variablen
+                            client_name = player_name_box.getText() if player_name_box else ""
+                            client_game = game_name_box.getText() if game_name_box else ""
+                            print(f"Beitreten mit Spielername: {client_name}, Servername: {client_game}")
+                            # Hier ggf. zu "lobby" wechseln:
+                            # state = "lobby"
+                            # lobby_server_name = client_game
+                            # lobby_player_count = 1
 
         pygame_widgets.update(events)
         pygame.display.flip()
