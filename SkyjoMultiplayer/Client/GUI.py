@@ -27,6 +27,7 @@ game_name_box = None
 widgets = []
 host_button_rect = (0, 0, 0, 0)
 join_button_rect = (0, 0, 0, 0)
+back_button_rect = (0, 0, 0, 0)
 
 
 client_name = ""
@@ -35,7 +36,7 @@ client_game = ""
 # --- Buttons Hauptmenü ---
 buttons = [
     ("Spiel erstellen", (400, 320, 200, 50)),
-    ("Spiel beitreten", (400, 400, 200, 50))
+    ("Spiel beitreten", (400, 400, 200, 50)),
 ]
 
 # --- Callback-Funktion für TextBox Submit ---
@@ -68,7 +69,7 @@ def draw_background_text():
     screen.blit(text_surface, text_rect)
 
 def draw_spielerauswahl():
-    global host_button_rect
+    global host_button_rect, back_button_rect
 
     # Überschrift
     header_font = pygame.font.SysFont(None, 60)
@@ -122,8 +123,21 @@ def draw_spielerauswahl():
     btn_text_rect = btn_text.get_rect(center=(btn_x + btn_width // 2, btn_y + btn_height // 2))
     screen.blit(btn_text, btn_text_rect)
 
+    # "Zurück"-Button
+    btn_width, btn_height = 180, 45
+    btn_x = WIDTH // 2 - btn_width // 2
+    btn_y = slider_y + 120
+    back_button_rect = (btn_x, btn_y, btn_width, btn_height)
+
+    pygame.draw.rect(screen, GRAY, back_button_rect)
+    pygame.draw.rect(screen, DARK_GRAY, back_button_rect, 2)
+    btn_font = pygame.font.SysFont(None, 32)
+    btn_text = btn_font.render("Zurück", True, BLACK)
+    btn_text_rect = btn_text.get_rect(center=(btn_x + btn_width // 2, btn_y + btn_height // 2))
+    screen.blit(btn_text, btn_text_rect)
+
 def draw_join():
-    global join_button_rect
+    global join_button_rect, back_button_rect
 
     # Überschrift
     header_font = pygame.font.SysFont(None, 60)
@@ -161,6 +175,19 @@ def draw_join():
     pygame.draw.rect(screen, DARK_GRAY, join_button_rect, 2)
     btn_font = pygame.font.SysFont(None, 32)
     btn_text = btn_font.render("Beitreten", True, BLACK)
+    btn_text_rect = btn_text.get_rect(center=(btn_x + btn_width // 2, btn_y + btn_height // 2))
+    screen.blit(btn_text, btn_text_rect)
+
+    # "Zurück"-Button
+    btn_width, btn_height = 180, 45
+    btn_x = WIDTH // 2 - btn_width // 2
+    btn_y = HEIGHT // 2 + 180
+    back_button_rect = (btn_x, btn_y, btn_width, btn_height)
+
+    pygame.draw.rect(screen, GRAY, back_button_rect)
+    pygame.draw.rect(screen, DARK_GRAY, back_button_rect, 2)
+    btn_font = pygame.font.SysFont(None, 32)
+    btn_text = btn_font.render("Zurück", True, BLACK)
     btn_text_rect = btn_text.get_rect(center=(btn_x + btn_width // 2, btn_y + btn_height // 2))
     screen.blit(btn_text, btn_text_rect)
 
@@ -269,6 +296,9 @@ def main():
                             # state = "lobby"
                             # lobby_server_name = client_game
                             # lobby_player_count = slider.getValue()
+                        if pygame.Rect(back_button_rect).collidepoint(event.pos):
+                            state = "main"
+                            reset_widgets()
 
                 case "join":
                     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -281,6 +311,9 @@ def main():
                             # state = "lobby"
                             # lobby_server_name = client_game
                             # lobby_player_count = 1
+                        if pygame.Rect(back_button_rect).collidepoint(event.pos):
+                            state = "main"
+                            reset_widgets()
 
         pygame_widgets.update(events)
         pygame.display.flip()
