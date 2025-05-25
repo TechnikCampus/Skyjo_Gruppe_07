@@ -22,11 +22,17 @@ def update_game_state(game,card_set):  # updatet den Spielzustand
                     player.is_active = False
             
             game.active_player = game.check_for_active_player()
+            round_starter = game.select_round_starter()
+
+            if not game.active_player:
+                if round_starter:
+                    game.active_player = round_starter
+                    for player in game.player_list:
+                        if player.name == round_starter:
+                            player.is_active = True
         
             game.shuffle_cards(card_set)
             game.check_game_over()
-
-        # game.running wird auf False gesetzt in check_game_over, hat momentan keinen Effekt!
 
 
 def start_game(game,cardset):      # startet ein neues Spiel, setzt Startvariablen
@@ -82,7 +88,7 @@ def check_for_permission(gamelist,playername,gamename,player_order):
 
     permission = False
 
-    if can_make_move:
+    if can_make_move or round_start:
 
         # Vom Ablagestapel nehmen nicht erlaubt wenn Nachziehstapel aufgedeckt:
         if player_order == "Take from Discard Pile" and not client_game.draw_pile[0].visible and client_game.discard_pile[0]:

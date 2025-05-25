@@ -126,7 +126,21 @@ class Game_state:
         for player in self.player_list:
             if player.is_active == True:
                 active_player = player.name
-        return active_player 
+        return active_player
+    
+    def select_round_starter(self):
+
+        if not self.active_player:
+            player_flipped_cards = [player.check_flipped_cards() for player in self.player_list]
+            if all(flipped == 2 for flipped in player_flipped_cards):
+                max_card_sum = max([player.count_visible_card_sum() for player in self.player_list])
+                for player in self.player_list:
+                    if player.count_visible_card_sum() == max_card_sum:
+                        return player.name
+            else:
+                return None
+        return None
+
     
     """
 
