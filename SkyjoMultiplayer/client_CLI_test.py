@@ -71,114 +71,134 @@ while True:
 
     if send_list:
 
+        """
         clnt.send_to_server(sock, send_list, client_name, client_game)
         received = clnt.receive_from_server(sock)
+        """
+        try:
+            clnt.send_to_server(sock, send_list, client_name, client_game)
+            received = clnt.receive_from_server(sock)
+
+            if received is None or received == "Nichts gesendet vom Server":
+                print("Warnung: Keine gültige Antwort vom Server erhalten.")
+                continue  # nicht abbrechen!
 
         # Das hier sendet der Server als Info über den Spielzustand:
 
-        game_round = received.get("Game Round")
-        game_draw_counter = received.get("Draw Counter")
-        game_player_number = received.get("Player Number")
-        player_list = received.get("Players")
-        discard_pile = received.get("Discard Pile")
-        draw_pile = received.get("Draw Pile")
-        game_name = received.get("Game Name")
-        active = received.get("Active")
-        final_phase = received.get("Final Phase")
+            game_round = received.get("Game Round")
+            game_draw_counter = received.get("Draw Counter")
+            game_player_number = received.get("Player Number")
+            player_list = received.get("Players")
+            discard_pile = received.get("Discard Pile")
+            draw_pile = received.get("Draw Pile")
+            game_name = received.get("Game Name")
+            active = received.get("Active")
+            final_phase = received.get("Final Phase")
 
-        card_row_1 = []
-        card_row_2 = []
-        card_row_3 = []
-        discard = []
-        draw = []
+            card_row_1 = []
+            card_row_2 = []
+            card_row_3 = []
+            discard = []
+            draw = []
 
-        # Kartendecks für die Anzeige vorbereiten:
+            # Kartendecks für die Anzeige vorbereiten:
 
-        for player in player_list:
-            row1 = player.card_deck[0]
-            for card in row1:
-                if card:
-                    if not card.visible:
-                        card_row_1.append("X")
+            for player in player_list:
+                row1 = player.card_deck[0]
+                for card in row1:
+                    if card:
+                        if not card.visible:
+                            card_row_1.append("X")
+                        else:
+                            card_row_1.append(str(card.value))
                     else:
-                        card_row_1.append(str(card.value))
-                else:
-                    card_row_1.append("D")
-                card_row_1.append("|")
-            card_row_1.append("    ")
+                        card_row_1.append("D")
+                    card_row_1.append("|")
+                card_row_1.append("    ")
 
-        for player in player_list:
-            row2 = player.card_deck[1]
-            for card in row2:
-                if card:
-                    if not card.visible:
-                        card_row_2.append("X")
+            for player in player_list:
+                row2 = player.card_deck[1]
+                for card in row2:
+                    if card:
+                        if not card.visible:
+                            card_row_2.append("X")
+                        else:
+                            card_row_2.append(str(card.value))
                     else:
-                        card_row_2.append(str(card.value))
-                else:
-                    card_row_2.append("D")
-                card_row_2.append("|")
-            card_row_2.append("    ")
+                        card_row_2.append("D")
+                    card_row_2.append("|")
+                card_row_2.append("    ")
     
-        for player in player_list:
-            row3 = player.card_deck[2]
-            for card in row3:
-                if card:
-                    if not card.visible:
-                        card_row_3.append("X")
+            for player in player_list:
+                row3 = player.card_deck[2]
+                for card in row3:
+                    if card:
+                        if not card.visible:
+                            card_row_3.append("X")
+                        else:
+                            card_row_3.append(str(card.value))
                     else:
-                        card_row_3.append(str(card.value))
-                else:
-                    card_row_3.append("D")
-                card_row_3.append("|")
-            card_row_3.append("    ")
+                        card_row_3.append("D")
+                    card_row_3.append("|")
+                card_row_3.append("    ")
         
-        # Stapel für die Anzeige vorbereiten:
+            # Stapel für die Anzeige vorbereiten:
 
-        for card in discard_pile:
-            if card.visible:
-                discard.append(str(card.value))
-            else:
-                discard.append("X")
+            for card in discard_pile:
+                if card.visible:
+                    discard.append(str(card.value))
+                else:
+                    discard.append("X")
 
-        for card in draw_pile:
-            if card.visible:
-                draw.append(str(card.value))
-            else:
-                draw.append("X")
+            for card in draw_pile:
+                if card.visible:
+                    draw.append(str(card.value))
+                else:
+                    draw.append("X")
         
         # Game State in die Konsole ausgeben:
 
-        print("---------------------------------------------------------- \n")
-        print(f"Spiel: {game_name}   Runde: {game_round}   Zugcounter: {game_draw_counter} \n")
-        print(f"Spieler anwesend: {game_player_number}   Am Zug: {active}  Endphase:   {final_phase} \n")
-        print("---------------------------------------------------------- \n")
-        print("".join(card_row_1))
-        print("\n")
-        print("".join(card_row_2))
-        print("\n")
-        print("".join(card_row_3))
-        print("\n")
-        print("---------------------------------------------------------- \n")
-        print("Spielernamen:")
-        for i, player in enumerate(player_list, 1):
-            print(f"Spieler {i}: {player.name}", end="  ")
+            print("---------------------------------------------------------- \n")
+            print(f"Spiel: {game_name}   Runde: {game_round}   Zugcounter: {game_draw_counter} \n")
+            print(f"Spieler anwesend: {game_player_number}   Am Zug: {active}  Endphase:   {final_phase} \n")
+            print("---------------------------------------------------------- \n")
+            print("".join(card_row_1))
             print("\n")
-        print("---------------------------------------------------------- \n")
-        print("Discard Pile: ")
-        print(" | ".join(discard) if discard else "Leer")
-        print("\n")
-        print("Draw Pile: ")
-        print(" | ".join(draw) if draw else "Leer")
-        print("\n")
-        print("---------------------------------------------------------- \n")
+            print("".join(card_row_2))
+            print("\n")
+            print("".join(card_row_3))
+            print("\n")
+            print("---------------------------------------------------------- \n")
+            print("Spielernamen:")
+            for i, player in enumerate(player_list, 1):
+                print(f"Spieler {i}: {player.name}", end="  ")
+                print("\n")
+            print("---------------------------------------------------------- \n")
+            print("Discard Pile: ")
+            print(" | ".join(discard) if discard else "Leer")
+            print("\n")
+            print("Draw Pile: ")
+            print(" | ".join(draw) if draw else "Leer")
+            print("\n")
+            print("---------------------------------------------------------- \n")
 
-        if not received:
-            break
-    
+        except Exception as e:
+            print(f"Fehler während Kommunikation mit Server: {e}")
+            continue  # ggf. statt `break`, damit der Client nicht stirbt
+        
     else:
-
+        """
         received = clnt.receive_from_server(sock)
         
         if not received:
             break
+        """
+        try:
+            received = clnt.receive_from_server(sock)
+            if received is None or received == "Nichts gesendet vom Server":
+                # Kein Problem, einfach weitermachen
+                continue
+            # Optional: serverseitige Änderungen anzeigen
+        except Exception as e:
+            print(f"Fehler beim Empfangen: {e}")
+            continue

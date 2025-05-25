@@ -48,6 +48,7 @@ while True:
                     for player in game.player_list:
                         if player.name == client_message[1][0]:
                             player.is_online = True                             # ein neuer Spieler hat sich verbunden
+                            player.initialize_card_deck()                       # Kartendeck mit Platzhaltern füllen
         
         elif client_message[0] == "New Game":                                   # ein neues Spiel wurde erstellt!
             print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")                       
@@ -68,7 +69,6 @@ while True:
                             player.is_online = False               # ein Spieler hat die Verbindung verloren
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
-            pass
             
             # Hier soll nun ausgeführt werden: Funktionen zur Verarbeitung des Spielerzugs! (siehe game_state)
 

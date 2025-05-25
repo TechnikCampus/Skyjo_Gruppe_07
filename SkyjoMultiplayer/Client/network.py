@@ -10,13 +10,24 @@ def connect_to_server(name,game,maxplayers,server_ip):                # erzeugt 
     return sock
 
 def receive_from_server(sock):    # Daten vom Server empfangen
-    
+    """
     try:
         received = pickle.loads(sock.recv(4096))
         return received
     except:
         print("Fehler beim empfangen vom Server!")
         sock.close()
+        return None
+    """
+    try:
+        data = sock.recv(4096)
+        if not data:
+            return "Nichts gesendet vom Server"
+        return pickle.loads(data)
+    except socket.timeout:
+        return "Nichts gesendet vom Server"
+    except Exception as e:
+        print(f"Fehler beim Empfang vom Server: {e}")
         return None
 
 

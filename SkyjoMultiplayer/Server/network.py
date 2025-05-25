@@ -61,7 +61,20 @@ def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an C
     conn.sendall(pickle.dumps(message_to_client))   
 
 def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
+
+    try:
+        data = conn.recv(4096)
+        if not data:
+            print("Vom Client ist nichts angekommen")
+            return None
+        return pickle.loads(data)
+    except socket.timeout:
+        return "Nichts gesendet vom Client"
+    except Exception as e:
+        print(f"Fehler beim empfangen:{e} ")
+        return None
     
+    """
     try:
         message_from_client = pickle.loads(conn.recv(4096))
         return message_from_client
@@ -72,6 +85,7 @@ def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
     except:
         print("Nichts empfangen")
         return None
+    """
 
 def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client_game,maxplayers):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
     
@@ -97,8 +111,13 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
                     break
             if thread_game:
                 break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis es sicher an game_list angehängt ist
+    
+    number_of_online_players = 0
+    for player in thread_game.player_list:
+        if player.is_online:
+            number_of_online_players += 1
 
-    if thread_game.player_counter == thread_game.max_players:
+    if number_of_online_players == thread_game.max_players:
         print(f"Fehler: {thread_player_game} ist bereits voll! ")
         conn.close()
         return                                 # erstmal schauen ob in dem Spiel noch Platz ist! Falls nein verbindung ablehnen
@@ -114,7 +133,7 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
                 conn.close()
                 return                         # Verbindung ablehnen, keine doppelte namensbelegungen
             
-    if not thread_player_name:                 # falls ganz neuer Name, neuen Spieler erstellen
+    if not thread_player_name and (thread_game.player_counter < thread_game.max_players):                # falls ganz neuer Name, neuen Spieler erstellen
         thread_player_name = new_client_name
         client_messages.put(("New Player", (thread_player_name,thread_player_game)))
 

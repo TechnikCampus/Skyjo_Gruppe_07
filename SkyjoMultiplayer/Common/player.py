@@ -1,4 +1,5 @@
 import random
+from .card import Card
 
 class Player:
     def __init__(self, name):
@@ -9,7 +10,7 @@ class Player:
         self.round_score = 0
         self.visible_round_score = 0
         self.total_score = 0
-        self.card_deck = [[None for _ in range(3)] for _ in range(4)]
+        self.card_deck = []
         self.is_active = False
         self.is_admin = False
 
@@ -29,6 +30,7 @@ class Player:
         if 0 <= row < 4 and 0 <= col < 3:
             self.card_deck[row][col] = {'value': value, 'flipped': False}
 
+    """
     def check_flipped_cards(self):
     
         # Gibt zurück wie viele Karten der Spieler aufgedeckt hat
@@ -40,7 +42,7 @@ class Player:
                     flipped_cards += 1
 
         return flipped_cards
-    """
+    
 
     def count_card_sum(self):
 
@@ -72,6 +74,10 @@ class Player:
         for i in range(4):
 
             column_cards = [self.card_deck[row][i] for row in range(3)]
+
+            if any(card is None for card in column_cards):     # Nicht ausführen für Spalten in denen keine Karten sind! Sonst AttributeError
+                continue
+
             values = [card.value for card in column_cards]
             visibility = [card.visible for card in column_cards]
 
@@ -79,8 +85,13 @@ class Player:
                 triplets_found_in_column.append(i)
 
         return triplets_found_in_column
-
     
+    def initialize_card_deck(self):
+
+        for i in range(3):
+            row = [Card(0,colour = None, visible = True) for _ in range(4)]
+            self.card_deck.append(row)
+
     """
     def check_for_all_flipped(self):
         Überprüft, ob alle Karten aufgedeckt sind.

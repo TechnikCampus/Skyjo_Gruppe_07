@@ -41,7 +41,8 @@ class Game_state:
         random.shuffle(card_set)  # das festgelegte Kartenset mit 150 Spielkarten mischeln
     
         for player in self.player_list:    # jedem Spieler zufällige Karten verteilen(4 Spalten, 3 Zeilen)
-              
+
+            player.card_deck.clear()  # das bei Serverbeitritt initialisierte Kartendeck mit Platzhaltern löschen
             for _ in range(3):  
                 row = []
                 for _ in range(4):  

@@ -2,27 +2,29 @@
 
 def update_game_state(game,card_set):  # updatet den Spielzustand
     
-    game.remove_triplets()
-    game.refresh_round_scores()
+    if game.running:
 
-    if game.draw_counter == 0:
+        game.remove_triplets()
+        game.refresh_round_scores()
 
-        game.refresh_total_player_score()
-        game.round += 1
-        game.final_phase = False
-        game.draw_counter = game.max_players
-        game.active_player = game.first_all_flipped_player
+        if game.draw_counter == 0:
 
-        for player in game.player_list:
-            if player.name == game.first_all_flipped_player:
-                player.is_active = True
-            else: 
-                player.is_active = False
+            game.refresh_total_player_score()
+            game.round += 1
+            game.final_phase = False
+            game.draw_counter = game.max_players
+            game.active_player = game.first_all_flipped_player
+
+            for player in game.player_list:
+                if player.name == game.first_all_flipped_player:
+                    player.is_active = True
+                else: 
+                    player.is_active = False
+            
+            game.active_player = game.check_for_active_player()
         
-        game.active_player = game.check_for_active_player()
-        
-        game.shuffle_cards(card_set)
-        game.check_game_over()
+            game.shuffle_cards(card_set)
+            game.check_game_over()
 
         # game.running wird auf False gesetzt in check_game_over, hat momentan keinen Effekt!
 
@@ -73,7 +75,7 @@ def check_for_permission(gamelist,playername,gamename,player_order):
     # Überprüfen ob gerade der Start der ersten Runde ist:
     # (kein Spieler am Zug und Spieler hat weniger als zwei Karten aufgedeckt)
 
-    if not client_game.check_for_active_player() and client_player.check_flipped_cards < 2:    
+    if not client_game.check_for_active_player() and client_player.check_flipped_cards() < 2:    
         round_start = True
     else:
         round_start = False
