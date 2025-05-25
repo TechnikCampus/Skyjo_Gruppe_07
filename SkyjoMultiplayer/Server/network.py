@@ -2,6 +2,7 @@
 import threading
 import socket
 import pickle
+import struct
 
 connections = []
 
@@ -58,8 +59,15 @@ def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an C
                         "Active": game.active_player
                         } 
     
-    conn.sendall(pickle.dumps(message_to_client))   
+    #conn.sendall(pickle.dumps(message_to_client))
 
+    try:
+        data = pickle.dumps(message_to_client)
+        msg = struct.pack(">I", len(data)) + data
+        conn.sendall(msg)
+    except Exception as e:
+        print(f"Fehler beim Senden an Client: {e}")
+"""
 def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
 
     try:
@@ -74,7 +82,7 @@ def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
         print(f"Fehler beim empfangen:{e} ")
         return None
     
-    """
+
     try:
         message_from_client = pickle.loads(conn.recv(4096))
         return message_from_client
@@ -85,7 +93,34 @@ def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
     except:
         print("Nichts empfangen")
         return None
-    """
+"""
+
+def recvall(conn, n):
+    data = b""
+    while len(data) < n:
+        packet = conn.recv(n - len(data))
+        if not packet:
+            return None
+        data += packet
+    return data
+
+def receive_from_client(conn):
+    try:
+        raw_msglen = recvall(conn, 4)
+        if not raw_msglen:
+            print("Vom Client kam nichts (Header fehlt)")
+            return None
+        msglen = struct.unpack(">I", raw_msglen)[0]
+        data = recvall(conn, msglen)
+        if not data:
+            print("Vom Client kam nichts (Body fehlt)")
+            return None
+        return pickle.loads(data)
+    except socket.timeout:
+        return "Nichts gesendet vom Client"
+    except Exception as e:
+        print(f"Fehler beim Empfangen vom Client: {e}")
+        return None
 
 def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client_game,maxplayers):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
     

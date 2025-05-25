@@ -16,7 +16,7 @@ client_name = str(input("Gebe hier deinen Namen ein >> "))
 
 client_game = "NeueLobby"
 max_players = 4
-server_ip = "Hier IP des Servers"
+server_ip = "192.168.0.133"
 
 sock = clnt.connect_to_server(client_name, client_game, max_players, server_ip)
 
@@ -72,6 +72,8 @@ while True:
     if send_list:
 
         """
+        # Alter Code der Probleme gemacht hat:
+
         clnt.send_to_server(sock, send_list, client_name, client_game)
         received = clnt.receive_from_server(sock)
         """
@@ -187,7 +189,11 @@ while True:
             continue  # ggf. statt `break`, damit der Client nicht stirbt
         
     else:
+
         """
+
+        # Alter Code der Probleme gemacht hat:
+        
         received = clnt.receive_from_server(sock)
         
         if not received:
