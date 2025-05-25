@@ -64,7 +64,7 @@ while True:
             for game in game_list:
                 if game.name == client_message[1][1]:
                     for player in game.player_list:
-                        if player.name == client_message[1]:
+                        if player.name == client_message[1][0]:
                             player.is_online = False               # ein Spieler hat die Verbindung verloren
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
@@ -86,18 +86,33 @@ while True:
                     
                     for game in game_list:
                         if game.name == client_message[2]:
-                            for player in game.player_list:
+                            for index,player in enumerate(game.player_list):
                                 if player.name == client_message[1]:
 
-                                    if player.card_deck[x,y]:
+                                    if player.card_deck[x][y]:
                                         player.card_deck[x][y], game.discard_pile[0] = game.discard_pile[0], player.card_deck[x][y]
                                         game.discard_pile[0].visible = True
+                                        
+                                        print(f"Spieler {player.name} hat eine Karte vom Ablagestapel genommen! An Stelle:  {[x,y]}")
+                                        player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                        final_phase, player_name = game.check_final_phase()
+                                        if final_phase:
+                                            game.first_all_flipped_player = player_name
+                                            game.final_phase = True
+                                        else:
+                                            game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+
+                                        if game.final_phase:
+                                            game.draw_counter -= 1    # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                        next_index = (index + 1) % len(game.player_list)
+                                        game.player_list[next_index].is_active = True
 
                                     # Existiert die Karte?
                                     # Karte von Ablagestapel mit der des Spielers tauschen
                                     # Karte auf Ablagestapel aufdecken
 
-                                    # Hier fehlt: Nächsten Spieler zum Zug berechtigen
 
             elif "Check Draw Pile" in client_message[3]:
 
@@ -106,6 +121,8 @@ while True:
                     for game in game_list:
                         if game.name == client_message[2]:
                             game.draw_pile[0].visible = True
+
+                            print(f"{client_message[1]} hat den Nachziehstapel aufgedeckt!")
 
                             # Nachziehstapel aufdecken
 
@@ -117,7 +134,7 @@ while True:
 
                     for game in game_list:
                         if game.name == client_message[2]:
-                            for player in game.player_list:
+                            for index,player in enumerate(game.player_list):
                                 if player.name == client_message[1]:
 
                                     if player.card_deck[x][y]:
@@ -126,13 +143,28 @@ while True:
                                         player.card_deck[x][y] = game.draw_pile[0]
                                         game.draw_pile.pop(0)
 
+                                        print(f"Spieler {player.name} hat eine Karte vom Nachziehstapel genommen! An Stelle:  {[x,y]}")
+                                        player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                        final_phase, player_name = game.check_final_phase()
+                                        if final_phase:
+                                            game.first_all_flipped_player = player_name
+                                            game.final_phase = True
+                                        else:
+                                            game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+
+                                        if game.final_phase:
+                                            game.draw_counter -= 1      # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                        next_index = (index + 1) % len(game.player_list)
+                                        game.player_list[next_index].is_active = True
+
                                         # Existiert die Karte
                                         # Karte im Spielerdeck aufdecken
                                         # In den Ablagestapel kopieren
                                         # Karte vom Nachziehstapel in Kartendeck kopieren
                                         # Oberste Karte vom Nachziehstapel entfernen
 
-                                        # Hier fehlt: Nächsten Spieler zum Zug berechtigen
 
             elif "Flip Card" in client_message[3]:
 
@@ -142,7 +174,7 @@ while True:
 
                     for game in game_list:
                         if game.name == client_message[2]:
-                            for player in game.player_list:
+                            for index,player in enumerate(game.player_list):
                                 if player.name == client_message[1]:
 
                                     if player.card_deck[x][y]:
@@ -151,7 +183,21 @@ while True:
                                             if player.is_active:
                                                 game.discard_pile.insert(0,game.draw_pile.pop(0))
 
-                                                # Hier fehlt: Nächsten Spieler zum Zug berechtigen
+                                                print(f"{player.name} hat eine Karte umgedreht! An Stelle: {[x,y]}")
+                                                player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                                final_phase, player_name = game.check_final_phase()
+                                                if final_phase:
+                                                    game.first_all_flipped_player = player_name
+                                                    game.final_phase = True
+                                                else:
+                                                    game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+                                                
+                                                if game.final_phase:
+                                                    game.draw_counter -= 1     # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                                next_index = (index + 1) % len(game.player_list)
+                                                game.player_list[next_index].is_active = True
 
                                     # Existiert die Karte?
                                     # Falls noch nicht aufgdeckt aufdecken
@@ -168,12 +214,13 @@ while True:
         if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
 
             # Spielstartlogik: Karten mischen usw.
+            print("Die Spielrunde kann jetzt gestartet werden")
             svr.start_game(game,cmn.card_set)
         
         else:
 
             # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
-            svr.update_game_state(game)
+            svr.update_game_state(game,cmn.card_set)
             
 
 

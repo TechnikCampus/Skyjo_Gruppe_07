@@ -28,18 +28,19 @@ class Game_state:
         self.round = 1
         self.player_counter = 0
         self.max_players = maxplayers
-        self.draw_counter = maxplayers - 1
+        self.draw_counter = maxplayers
         self.final_phase = False
         self.active_player = None
         self.player_list = []
         self.discard_pile = []        # wichtig: discard_pile[0]: obere aufgedeckte Karte
         self.draw_pile = []           # wichtig: draw_pile[0]: oberste Karte des Stapels
+        self.first_all_flipped_player = None
 
     def shuffle_cards(self, card_set):
 
         random.shuffle(card_set)  # das festgelegte Kartenset mit 150 Spielkarten mischeln
     
-        for player in self.player_list:    # jedem Spieler zufällige Karten verteilen
+        for player in self.player_list:    # jedem Spieler zufällige Karten verteilen(4 Spalten, 3 Zeilen)
               
             for _ in range(3):  
                 row = []
@@ -51,34 +52,70 @@ class Game_state:
         self.discard_pile = [Card(value=card_set.pop(0),colour=None,visible=True)]   # eine Karte auf den Ablagestapel (aufgedeckt)
         self.draw_pile = [Card(value=value, colour=None) for value in card_set]      # restlichen Karten verdeckt auf den Nachziehstapel
 
-    def check_for_triplets(self):
-        pass
+    def remove_triplets(self):
 
-        # Hier auf Drillinge in Spalte untersuchen
+        # Bei jedem Spieler alle aufgedeckten Drillinge entfernen
+
+        for player in self.player_list:
+            if player.check_for_triplets():
+                for column in player.check_for_triplets():
+                    for i in range(3):
+                        player.card_deck[i][column] = None
+
+                print(f"Bei Spieler {player.name} wurden Drillinge entfernt!")
 
     def refresh_round_scores(self):
+
+        # Sichtbare (für Client) und insgesamte (für Server) Spielerpunktzahl updaten
+
         for player in self.player_list:
-            player.round_score = sum(card for card in player.cards if card is not None)
+            player.round_score = player.count_card_sum()
+            player.visible_round_score = player.count_visible_card_sum()
+
 
     def refresh_total_player_scores(self):
+
+        # Am Ende der Runde: Spielerpunktzahlen zu Gesamtpunktzahl dazu addieren,
+        # round_score wieder zu 0 setzen für nächste Runde (Standardwert
+        # first_all_flipped_player: Der Spieler der zuerst alle Karten aufgedeckt hat
+        # wenn dieser nicht den niedrigsten Rundenscore hat -> Punktzahl verdoppeln
+
+        lowest_round_score = min([player.round_score for player in self.player_list])
+
         for player in self.player_list:
-            player.total_score += player.round_score
+
+            if player.name == self.first_all_flipped_player and player.round_score != lowest_round_score:
+                player.total_score += (2 * player.round_score)
+            else: player.total_score += player.round_score
+
+            player.round_score = 0
+
 
     def check_game_over(self):
 
         # Spielende: Ein Spieler hat >= 100 Punkte
+        # oder die Rundenzahl ist = 11
+
+        max_score = max(player.total_score for player in self.player_list)
+        if max_score >= 100 or self.round >= 11:
+
+            self.running = False
+            print("Spiel vorbei!")
+            return True
+        else: 
+            return False
+
+
+    def check_final_phase(self):
+
+        # Endphase der Runde startet, wenn alle Karten eines Spielers aufgedeckt sind
+        # Falls ein Spieler alle aufgedeckt hat, Namen des Spielers mit zurückgeben
+
         for player in self.player_list:
-            if player.total_score >= 100:
-                return True
+            if all(card.visible for card in player.card_deck):
+                return (True,player.name)
         return False
 
-    def check_round_over(self):
-
-        # Runde vorbei, wenn alle Karten eines Spielers aufgedeckt sind
-        for player in self.player_list:
-            if player.flipped_cards == len(player.cards):
-                return True
-        return False
 
     def check_for_active_player(self):
         
@@ -128,7 +165,7 @@ class Game_state:
             self.active_player.flip_card()
             return True
         return False                          
-    """
+    
 
     def start_new_round(self):
         self.round += 1
@@ -141,3 +178,5 @@ class Game_state:
         self.discard_pile.append(self.draw_pile.pop())
         self.active_player = self.player_list[0] if self.player_list else None
         self.draw_counter = 0
+        
+    """

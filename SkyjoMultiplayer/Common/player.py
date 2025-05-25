@@ -7,8 +7,9 @@ class Player:
         self.name = name
         self.is_online = False
         self.round_score = 0
+        self.visible_round_score = 0
         self.total_score = 0
-        self.card_deck = [[[None for _ in range(3)] for _ in range(4)]]
+        self.card_deck = [[None for _ in range(3)] for _ in range(4)]
         self.is_active = False
         self.is_admin = False
 
@@ -27,7 +28,6 @@ class Player:
         #Fügt eine Karte mit Wert value an Position (row, col) hinzu
         if 0 <= row < 4 and 0 <= col < 3:
             self.card_deck[row][col] = {'value': value, 'flipped': False}
-    """
 
     def check_flipped_cards(self):
     
@@ -40,38 +40,56 @@ class Player:
                     flipped_cards += 1
 
         return flipped_cards
+    """
 
     def count_card_sum(self):
-        """Zählt die Summe aller aufgedeckten Karten."""
-        total = 0
+
+        # Zählt die Punktzahl des Spielers (nicht sichtbare Karten mit eingeschlossen, für Server!)
+
+        sum = 0
         for row in self.card_deck:
             for card in row:
-                if card['flipped'] and card['value'] is not None:
-                    total += card['value']
-        return total
+                sum += card.value
+        return sum
+    
+    def count_visible_card_sum(self):
+
+        # Zählt die Punktzahl des Spielers (nur sichtbare Karten, für Client!)
+
+        sum = 0
+        for row in self.card_deck:
+            for card in row:
+                if card.visible:
+                    sum += card.value
+        return sum
 
     def check_for_triplets(self):
-        """Überprüft jede Spalte auf Drillinge (gleicher Wert, alle aufgedeckt)."""
-        for col in range(3):
-            values = []
-            for row in range(4):
-                card = self.card_deck[row][col]
-                if card['flipped'] and card['value'] is not None:
-                    values.append(card['value'])
-                else:
-                    break
-            if len(values) == 4 and all(v == values[0] for v in values):
-                return True
-        return False
+        
+        # Gibt bei dem Spieler eine Liste mit Spalten zurück in denen 3 gleiche Karten aufgedeckt sind
+        # so dass diese entfernt werden können
 
+        triplets_found_in_column = []
+        for i in range(4):
+
+            column_cards = [self.card_deck[row][i] for row in range(3)]
+            values = [card.value for card in column_cards]
+            visibility = [card.visible for card in column_cards]
+
+            if len(set(values)) == 1 and all(visibility) == True:
+                triplets_found_in_column.append(i)
+
+        return triplets_found_in_column
+
+    
+    """
     def check_for_all_flipped(self):
-        """Überprüft, ob alle Karten aufgedeckt sind."""
+        Überprüft, ob alle Karten aufgedeckt sind.
         for row in self.card_deck:
             for card in row:
                 if not card['flipped']:
                     return False
         return True
-    """
+    
     def enter_lobby(self):
         self.is_online = True
 

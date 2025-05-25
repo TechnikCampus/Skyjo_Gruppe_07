@@ -1,23 +1,36 @@
 ##### Game logic functions on the server #####
 
-
-def update_game_state(game):  # updatet den Spielzustand
+def update_game_state(game,card_set):  # updatet den Spielzustand
     
-    pass
+    game.remove_triplets()
+    game.refresh_round_scores()
 
-    # Hier gehört hin:
+    if game.draw_counter == 0:
 
-    # refresh_round_scores()
-    # refresh_total_player_scores()
-    # check_game_over()
-    # check_round_over() und start_new_round()
-    # check_for_two_cards_flipped()
-    # check_for_triplets()
+        game.refresh_total_player_score()
+        game.round += 1
+        game.final_phase = False
+        game.draw_counter = game.max_players
+        game.active_player = game.first_all_flipped_player
+
+        for player in game.player_list:
+            if player.name == game.first_all_flipped_player:
+                player.is_active = True
+            else: 
+                player.is_active = False
+        
+        game.active_player = game.check_for_active_player()
+        
+        game.shuffle_cards(card_set)
+        game.check_game_over()
+
+        # game.running wird auf False gesetzt in check_game_over, hat momentan keinen Effekt!
 
 
 def start_game(game,cardset):      # startet ein neues Spiel, setzt Startvariablen
     
     game.shuffle_cards(cardset)    # Karten mischen
+    print("Karten wurden gemischelt")
     game.running = True
 
 
@@ -56,6 +69,7 @@ def check_for_permission(gamelist,playername,gamename,player_order):
 
     # Falls ja: Prüfen ob der Spielzustand den Zug erlaubt:
 
+    # Und:
     # Überprüfen ob gerade der Start der ersten Runde ist:
     # (kein Spieler am Zug und Spieler hat weniger als zwei Karten aufgedeckt)
 
@@ -88,6 +102,11 @@ def check_for_permission(gamelist,playername,gamename,player_order):
 
         elif player_order == "Flip Card" and (client_game.draw_pile[0].visible or round_start):
             permission = True
+
+    if permission:
+        print(f"{playername} hat die Erlaubnis das zu tun!")
+    else:
+        print(f"Zug von {playername} wurde vom Server verweigert!")
 
     return permission
 
