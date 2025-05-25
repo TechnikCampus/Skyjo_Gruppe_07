@@ -58,8 +58,8 @@ def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an C
                         "Final Phase": game.final_phase,
                         "Active": game.active_player
                         } 
-    
-    #conn.sendall(pickle.dumps(message_to_client))
+
+    # In den Header packen wie viele Daten gesendet werden, dann Daten senden
 
     try:
         data = pickle.dumps(message_to_client)
@@ -67,35 +67,11 @@ def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an C
         conn.sendall(msg)
     except Exception as e:
         print(f"Fehler beim Senden an Client: {e}")
-"""
-def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
-
-    try:
-        data = conn.recv(4096)
-        if not data:
-            print("Vom Client ist nichts angekommen")
-            return None
-        return pickle.loads(data)
-    except socket.timeout:
-        return "Nichts gesendet vom Client"
-    except Exception as e:
-        print(f"Fehler beim empfangen:{e} ")
-        return None
-    
-
-    try:
-        message_from_client = pickle.loads(conn.recv(4096))
-        return message_from_client
-    
-    except socket.timeout:
-        return "Nichts gesendet vom Client"
-    
-    except:
-        print("Nichts empfangen")
-        return None
-"""
 
 def recvall(conn, n):
+
+    # Hilfsfunktion die n Bytes liest
+
     data = b""
     while len(data) < n:
         packet = conn.recv(n - len(data))
@@ -105,12 +81,18 @@ def recvall(conn, n):
     return data
 
 def receive_from_client(conn):
+
+    # Header lesen: Wie viele Bytes schickt der Client?
+
     try:
         raw_msglen = recvall(conn, 4)
         if not raw_msglen:
             print("Vom Client kam nichts (Header fehlt)")
             return None
         msglen = struct.unpack(">I", raw_msglen)[0]
+    
+    # So viele Bytes wie im Header spezifiziert auslesen:
+    
         data = recvall(conn, msglen)
         if not data:
             print("Vom Client kam nichts (Body fehlt)")

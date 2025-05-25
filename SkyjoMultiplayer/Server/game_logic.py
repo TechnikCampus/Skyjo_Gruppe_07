@@ -14,6 +14,9 @@ def update_game_state(game,card_set):  # updatet den Spielzustand
             game.final_phase = False
             game.draw_counter = game.max_players
             game.active_player = game.first_all_flipped_player
+            
+            game.shuffle_cards(card_set)
+            game.check_game_over()
 
             for player in game.player_list:
                 if player.name == game.first_all_flipped_player:
@@ -21,18 +24,16 @@ def update_game_state(game,card_set):  # updatet den Spielzustand
                 else: 
                     player.is_active = False
             
-            game.active_player = game.check_for_active_player()
-            round_starter = game.select_round_starter()
+        game.active_player = game.check_for_active_player()
+        round_starter = game.select_round_starter()
 
-            if not game.active_player:
-                if round_starter:
-                    game.active_player = round_starter
-                    for player in game.player_list:
-                        if player.name == round_starter:
-                            player.is_active = True
+        if not game.active_player:
+            if round_starter:
+                game.active_player = round_starter
+                for player in game.player_list:
+                    if player.name == round_starter:
+                        player.is_active = True
         
-            game.shuffle_cards(card_set)
-            game.check_game_over()
 
 
 def start_game(game,cardset):      # startet ein neues Spiel, setzt Startvariablen

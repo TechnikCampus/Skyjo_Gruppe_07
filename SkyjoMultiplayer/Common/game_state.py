@@ -1,24 +1,6 @@
 import random
 from .card import Card
 
-"""
-class Player:
-    def __init__(self, name):
-        self.name = name
-        self.cards = []
-        self.round_score = 0
-        self.total_score = 0
-        self.flipped_cards = 0  # Anzahl aufgedeckter Karten
-
-    def flip_card(self):
-        self.flipped_cards += 1
-
-    def reset_for_new_round(self):
-        self.cards = []
-        self.round_score = 0
-        self.flipped_cards = 0
-"""
-
 class Game_state:
 
     def __init__(self,name,maxplayers):        # beim Start eines Spiels den Namen und die max. Spieleranzahl festlegen
@@ -113,10 +95,9 @@ class Game_state:
         # Falls ein Spieler alle aufgedeckt hat, Namen des Spielers mit zurückgeben
 
         for player in self.player_list:
-            if all(card.visible for card in player.card_deck):
+            if all(card and card.visible for row in player.card_deck for card in row):
                 return (True,player.name)
-        return False
-
+        return False,"None"      # "None" dazuschreiben da ansonsten ein Fehler in server.py entsteht
 
     def check_for_active_player(self):
         
@@ -141,57 +122,3 @@ class Game_state:
                 return None
         return None
 
-    
-    """
-
-    def check_for_two_cards_flipped(self):
-        # Alle Spieler müssen zu Beginn 2 Karten aufgedeckt haben
-        return all(player.flipped_cards >= 2 for player in self.player_list)
-
-    
-    def select_active_player(self):
-        # Nächster Spieler in der Liste, der noch Karten hat
-        if not self.player_list:
-            self.active_player = None
-            return
-        if self.active_player is None:
-            self.active_player = self.player_list[0]
-        else:
-            idx = self.player_list.index(self.active_player)
-            self.active_player = self.player_list[(idx + 1) % len(self.player_list)]
-    
-
-    def make_player_move(self, move):
-        # move: dict mit z.B. {'action': 'draw', 'from': 'draw_pile'}
-        if self.active_player is None:
-            return False
-        if move['action'] == 'draw':
-            if move['from'] == 'draw_pile' and self.draw_pile:
-                card = self.draw_pile.pop()
-                self.active_player.cards.append(card)
-            elif move['from'] == 'discard_pile' and self.discard_pile:
-                card = self.discard_pile.pop()
-                self.active_player.cards.append(card)
-            else:
-                return False
-            self.draw_counter += 1
-            return True
-        elif move['action'] == 'flip':
-            self.active_player.flip_card()
-            return True
-        return False                          
-    
-
-    def start_new_round(self):
-        self.round += 1
-        self.shuffle_cards()
-        for player in self.player_list:
-            player.reset_for_new_round()
-            # Jeder Spieler bekommt z.B. 12 Karten
-            player.cards = [self.draw_pile.pop() for _ in range(12)]
-        # Erste Karte auf den Ablagestapel
-        self.discard_pile.append(self.draw_pile.pop())
-        self.active_player = self.player_list[0] if self.player_list else None
-        self.draw_counter = 0
-        
-    """

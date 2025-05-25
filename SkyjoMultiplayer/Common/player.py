@@ -14,23 +14,6 @@ class Player:
         self.is_active = False
         self.is_admin = False
 
-    """
-    def flip_card(self, row, col):
-        #Deckt eine Karte auf
-        if 0 <= row < 4 and 0 <= col < 3:
-            self.card_deck[row][col]['flipped'] = True
-
-    def remove_card(self, row, col):
-        #Entfernt eine Karte aus dem Deck (setzt sie auf None)
-        if 0 <= row < 4 and 0 <= col < 3:
-            self.card_deck[row][col] = {'value': None, 'flipped': False}
-
-    def add_card(self, row, col, value):
-        #Fügt eine Karte mit Wert value an Position (row, col) hinzu
-        if 0 <= row < 4 and 0 <= col < 3:
-            self.card_deck[row][col] = {'value': value, 'flipped': False}
-
-    """
     def check_flipped_cards(self):
     
         # Gibt zurück wie viele Karten der Spieler aufgedeckt hat
@@ -51,7 +34,8 @@ class Player:
         sum = 0
         for row in self.card_deck:
             for card in row:
-                sum += card.value
+                if card:
+                    sum += card.value
         return sum
     
     def count_visible_card_sum(self):
@@ -61,8 +45,9 @@ class Player:
         sum = 0
         for row in self.card_deck:
             for card in row:
-                if card.visible:
-                    sum += card.value
+                if card:
+                    if card.visible:
+                        sum += card.value
         return sum
 
     def check_for_triplets(self):
@@ -91,29 +76,3 @@ class Player:
         for i in range(3):
             row = [Card(0,colour = None, visible = True) for _ in range(4)]
             self.card_deck.append(row)
-
-    """
-    def check_for_all_flipped(self):
-        Überprüft, ob alle Karten aufgedeckt sind.
-        for row in self.card_deck:
-            for card in row:
-                if not card['flipped']:
-                    return False
-        return True
-    
-    def enter_lobby(self):
-        self.is_online = True
-
-    def leave_lobby(self):
-        self.is_online = False
-
-    def initialize_deck(self, card_values):
-        #Initialisiert das Deck mit einer Liste von 12 Kartenwerten.
-        if len(card_values) != 12:
-            raise ValueError("Es werden genau 12 Kartenwerte benötigt.")
-        idx = 0
-        for row in range(4):
-            for col in range(3):
-                self.card_deck[row][col] = {'value': card_values[idx], 'flipped': False}
-                idx += 1
-    """
