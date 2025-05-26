@@ -8,16 +8,14 @@ import Client as clnt
 import sys
 import threading
 import queue
-import time
 
 pygame.init()
 clock = pygame.time.Clock()
 
 client_name = str(input("Gebe hier deinen Namen ein >> "))
-
-client_game = "NeueLobby"
-max_players = 4
-server_ip = "Hier IP Adresse des Servers"
+client_game = str(input("Gebe hier den Namen des Spiels ein >> "))
+max_players = 2
+server_ip = "Hier Server IP"
 
 sock = clnt.connect_to_server(client_name, client_game, max_players, server_ip)
 previous_snapshot = None
@@ -37,19 +35,19 @@ def input_thread():
                 continue
 
             cmd = parts[0]
-            if cmd == "Check" and " ".join(parts[:3]) == "Check Draw Pile":
+            if cmd == "check" and " ".join(parts[:3]) == "check draw":
                 command_queue.put(("Check Draw Pile", True))
 
-            elif cmd == "Flip" and parts[1] == "Card":
-                x, y = int(parts[2]), int(parts[3])
+            elif cmd == "flip":
+                x, y = int(parts[1]), int(parts[2])
                 command_queue.put(("Flip Card", (x, y)))
 
-            elif cmd == "Take" and parts[1] == "from" and parts[2] == "Discard" and parts[3] == "Pile":
-                x, y = int(parts[4]), int(parts[5])
+            elif cmd == "take" and parts[1] == "from" and parts[2] == "discard":
+                x, y = int(parts[3]), int(parts[4])
                 command_queue.put(("Take from Discard Pile", (x, y)))
 
-            elif cmd == "Take" and parts[1] == "from" and parts[2] == "Draw" and parts[3] == "Pile":
-                x, y = int(parts[4]), int(parts[5])
+            elif cmd == "take" and parts[1] == "from" and parts[2] == "draw":
+                x, y = int(parts[3]), int(parts[4])
                 command_queue.put(("Take from Draw Pile", (x, y)))
 
             else:
