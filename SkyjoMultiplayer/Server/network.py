@@ -18,7 +18,7 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
 
     try:
         conn,addr = server.accept()
-        conn.settimeout(5.0)
+        conn.settimeout(1.0)
 
         try:
             name_message = pickle.loads(conn.recv(1024))        # evtl empfindlich für Übertragungsfehler!
@@ -38,7 +38,7 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
 
         connections.append((conn,addr))
         print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
-        thread = threading.Thread(target=handle_client, args = (conn,addr,game_list,client_messages,new_client_name,new_client_game,max_player_count))    # thread wird gestartet der handle_client ausführt
+        thread = threading.Thread(target=handle_client, daemon= True, args = (conn,addr,game_list,client_messages,new_client_name,new_client_game,max_player_count))    # thread wird gestartet der handle_client ausführt
         thread.start()
 
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
@@ -56,7 +56,9 @@ def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an C
                         "Players" : game.player_list,
                         "Your Name": player_name,
                         "Final Phase": game.final_phase,
-                        "Active": game.active_player
+                        "Active": game.active_player,
+                        "Running": game.running,
+                        "End Scores": game.end_scores
                         } 
 
     # In den Header packen wie viele Daten gesendet werden, dann Daten senden
@@ -129,12 +131,11 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
             if thread_game:
                 break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis es sicher an game_list angehängt ist
     
-    number_of_online_players = 0
+    number_of_game_players = 0
     for player in thread_game.player_list:
-        if player.is_online:
-            number_of_online_players += 1
+        number_of_game_players += 1
 
-    if number_of_online_players == thread_game.max_players:
+    if number_of_game_players == thread_game.max_players:
         print(f"Fehler: {thread_player_game} ist bereits voll! ")
         conn.close()
         return                                 # erstmal schauen ob in dem Spiel noch Platz ist! Falls nein verbindung ablehnen
@@ -155,6 +156,21 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
         client_messages.put(("New Player", (thread_player_name,thread_player_game)))
 
     while True:
+        
+        # Thread schließen wenn nicht mehr benötigt:
+
+        if thread_game.closed:
+            print(f"Thread für {thread_player_name} geschlossen, da Spiel nicht mehr existiert")
+            conn.close()
+            break
+
+        for player in thread_game.player_list:
+            if player.name == thread_player_name and player.left:
+                print(f"Thread für {thread_player_name} geschlossen, da der Spieler das Spiel verlassen hat")
+                conn.close()
+                break
+        
+        # Hauptthreadschleife:
         
         try:
             send_to_client(thread_game,conn,thread_player_name)  # die wichtigen Daten von game_state werden an die clients geschickt
@@ -177,6 +193,9 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
             client_messages.put(("Lost connection",(thread_player_name,thread_player_game)))    # so dass game_state informiert werden kann
                                                                                                 # dass dieser Spieler verschwunden ist
             return
+        
+
+
 
 
 

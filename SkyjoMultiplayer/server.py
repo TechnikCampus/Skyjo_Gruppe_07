@@ -51,7 +51,8 @@ while True:
                             player.initialize_card_deck()                       # Kartendeck mit Platzhaltern füllen
         
         elif client_message[0] == "New Game":                                   # ein neues Spiel wurde erstellt!
-            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")                       
+            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")
+
             new_game = cmn.Game_state(client_message[1][0],client_message[1][1])          # neue Instanz von game_state
 
             # client_message[1][0]: Spielname
@@ -205,22 +206,52 @@ while True:
                                     # wenn der Spieler gerade einen Zug gemacht hat, NICHT wenn
                                     # es Rundenbeginn war und der Spieler der startet ausgewählt wird
 
+            elif "Leave Game" in client_message[3]:
+                
+                for game in game_list:
+                    if game.name == client_message[2] and game.end_scores:
+                        for player in game.player_list:
+                            if player.name == client_message[1]:
+
+                                print(f"{player.name} hat das Spiel ordentlich verlassen")
+                                game.player_list.remove(player)
+                                game.player_counter -= 1
+
+                                # Wenn das Spiel vorbei ist können die Spieler es verlassen!
+
+            elif "End Game" in client_message[3]:
+                
+                for game in game_list:
+                    if game.name == client_message[2]:
+                        for player in game.player_list:
+                            if player.name == client_message[1] and player.is_admin:
+
+                                print(f"Admin {player.name} hat das Spiel geschlossen")
+                                game.closed = True
+
+
+                                # Admins können jederzeit das Spiel beenden
+
             #######################################################################
                                 
     # Nach Abprüfen und Verarbeiten der Client-Anfragen generelle Spiellogikfunktionen durchführen:
 
+    svr.clean_up_games(game_list)  # entfernt Spiele dich geschlossen wurden und Spieler die weg sind nach Spielende
+
     for game in game_list:
 
-        if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
+        if not game.closed:
+            if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
 
-            # Spielstartlogik: Karten mischen usw.
-            print("Die Spielrunde kann jetzt gestartet werden")
-            svr.start_game(game,cmn.card_set)
+                # Spielstartlogik: Karten mischen usw.
+                print("Die Spielrunde kann jetzt gestartet werden")
+                svr.start_game(game,cmn.card_set)
         
-        else:
+            else:
 
-            # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
-            svr.update_game_state(game,cmn.card_set)
+                # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
+                svr.update_game_state(game,cmn.card_set)
+
             
 
 

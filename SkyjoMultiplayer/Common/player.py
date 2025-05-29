@@ -13,6 +13,7 @@ class Player:
         self.card_deck = []
         self.is_active = False
         self.is_admin = False
+        self.left = False          # Spieler wird aus der Spielerliste entfernt wenn hier True gesetzt wird
 
     def check_flipped_cards(self):
     

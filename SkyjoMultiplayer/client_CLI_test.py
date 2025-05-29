@@ -15,7 +15,7 @@ clock = pygame.time.Clock()
 client_name = str(input("Gebe hier deinen Namen ein >> "))
 client_game = str(input("Gebe hier den Namen des Spiels ein >> "))
 max_players = 2
-server_ip = "Hier Server IP"
+server_ip = "192.168.178.136"
 
 sock = clnt.connect_to_server(client_name, client_game, max_players, server_ip)
 previous_snapshot = None
@@ -50,6 +50,12 @@ def input_thread():
                 x, y = int(parts[3]), int(parts[4])
                 command_queue.put(("Take from Draw Pile", (x, y)))
 
+            elif cmd == "leave":
+                command_queue.put(("Leave Game",True))
+
+            elif cmd == "end":
+                command_queue.put(("End Game", True))
+
             else:
                 print("Ungültiger Befehl.")
         except Exception as e:
@@ -59,7 +65,10 @@ def input_thread():
 
 threading.Thread(target=input_thread, daemon=True).start()
 
+failed_attempts = 0        # Zählt wie oft die Serverkommunikation fehlgeschlagen ist
+
 while True:
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -76,18 +85,20 @@ while True:
             received = clnt.receive_from_server(sock)
 
             snapshot = {
-                "Game Name": received.get("Game Name"),
-                "Game Round": received.get("Game Round"),
-                "Draw Counter": received.get("Draw Counter"),
-                "Player Number": received.get("Player Number"),
+                
                 "Active": received.get("Active"),
-                "Final Phase": received.get("Final Phase"),
-                "Players": [(player.name,
-                            [[(card.value if card else "D", card.visible if card else False) for card in row] for row in player.card_deck])
-                            for player in received.get("Players")],
-                "Discard Pile": [(card.value if card else "D", card.visible if card else False) for card in received.get("Discard Pile")],
-                "Draw Pile": [(card.value if card else "D", card.visible if card else False) for card in received.get("Draw Pile")]
+                "Players Decks": [
+                    [[(card.value if card else "D", card.visible if card else False) for card in row]
+                    for row in player.card_deck]
+                    for player in received.get("Players")
+                ],
+                "Discard Pile": [(card.value if card else "D", card.visible if card else False)
+                                for card in received.get("Discard Pile")],
+                "Draw Pile": [(card.value if card else "D", card.visible if card else False)
+                            for card in received.get("Draw Pile")]
             }
+
+            failed_attempts = 0
 
             if received is None or received == "Nichts gesendet vom Server":
                 print("Warnung: Keine gültige Antwort vom Server erhalten.")
@@ -95,8 +106,13 @@ while True:
 
         except Exception as e:
             print(f"Fehler während Kommunikation mit Server: {e}")
+            failed_attempts += 1
+
+            if failed_attempts > 10:      # wenn mehr als 10 mal Serverkommunikation fehlgeschlagen beenden
+                print("Fehler: Client geschlossen da Server nicht mehr antwortet")
+                break
+
             continue
-            # Das hier sendet der Server als Info über den Spielzustand:
 
     else:
 
@@ -104,24 +120,32 @@ while True:
             received = clnt.receive_from_server(sock)
 
             snapshot = {
-                "Game Name": received.get("Game Name"),
-                "Game Round": received.get("Game Round"),
-                "Draw Counter": received.get("Draw Counter"),
-                "Player Number": received.get("Player Number"),
+
                 "Active": received.get("Active"),
-                "Final Phase": received.get("Final Phase"),
-                "Players": [(player.name,
-                            [[(card.value if card else "D", card.visible if card else False) for card in row] for row in player.card_deck])
-                            for player in received.get("Players")],
-                "Discard Pile": [(card.value if card else "D", card.visible if card else False) for card in received.get("Discard Pile")],
-                "Draw Pile": [(card.value if card else "D", card.visible if card else False) for card in received.get("Draw Pile")]
+                "Players Decks": [
+                    [[(card.value if card else "D", card.visible if card else False) for card in row]
+                    for row in player.card_deck]
+                    for player in received.get("Players")
+                ],
+                "Discard Pile": [(card.value if card else "D", card.visible if card else False)
+                                for card in received.get("Discard Pile")],
+                "Draw Pile": [(card.value if card else "D", card.visible if card else False)
+                            for card in received.get("Draw Pile")]
             }
+
+            failed_attempts = 0
 
             if received is None or received == "Nichts gesendet vom Server":
                 continue
             
         except Exception as e:
             print(f"Fehler beim Empfangen: {e}")
+            failed_attempts += 1
+
+            if failed_attempts > 10:      # wenn mehr als 10 mal Serverkommunikation fehlgeschlagen beenden   
+                print("Fehler: Client geschlossen da Server nicht mehr antwortet")
+                break
+            
             continue
 
     # Game State in die Konsole ausgeben:
@@ -135,6 +159,8 @@ while True:
     game_name = received.get("Game Name")
     active = received.get("Active")
     final_phase = received.get("Final Phase")
+    running = received.get("Running")
+    end_scores = received.get("End Scores")
 
     card_row_1 = []
     card_row_2 = []
@@ -197,13 +223,14 @@ while True:
         else:
             draw.append("X")
       
-    if snapshot != previous_snapshot:
+    if received and snapshot != previous_snapshot:
 
         previous_snapshot = snapshot 
 
         print("----------------------------------------------------------")
-        print(f"Spiel: {game_name}   Runde: {game_round}   Zugcounter: {game_draw_counter}")
+        print(f"Spiel: {game_name}   Runde: {game_round}   Zugcounter: {game_draw_counter} Running: {running}")
         print(f"Spieler anwesend: {game_player_number}   Am Zug: {active}  Endphase:   {final_phase}")
+        print(f"End Scores: {end_scores}")
         print("----------------------------------------------------------")
         print("".join(card_row_1))
         print("".join(card_row_2))

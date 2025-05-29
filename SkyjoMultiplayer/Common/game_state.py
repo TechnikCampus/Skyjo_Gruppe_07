@@ -17,6 +17,8 @@ class Game_state:
         self.discard_pile = []        # wichtig: discard_pile[0]: obere aufgedeckte Karte
         self.draw_pile = []           # wichtig: draw_pile[0]: oberste Karte des Stapels
         self.first_all_flipped_player = None
+        self.end_scores = []
+        self.closed = False           # Wenn hier True gesetzt wird wird das Spiel entfernt in der Server hauptschleife
 
     def shuffle_cards(self, card_set):
 
@@ -77,16 +79,15 @@ class Game_state:
     def check_game_over(self):
 
         # Spielende: Ein Spieler hat >= 100 Punkte
-        # oder die Rundenzahl ist = 11
 
         max_score = max(player.total_score for player in self.player_list)
-        if max_score >= 100 or self.round >= 11:
+        if max_score >= 100:
+
+            for player in self.player_list:
+                self.end_scores.append((player.name,player.total_score))   # Endspielstand definieren
 
             self.running = False
             print("Spiel vorbei!")
-            return True
-        else: 
-            return False
 
 
     def check_final_phase(self):
