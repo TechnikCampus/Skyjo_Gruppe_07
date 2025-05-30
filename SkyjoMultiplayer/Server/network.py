@@ -131,11 +131,12 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
             if thread_game:
                 break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis es sicher an game_list angehängt ist
     
-    number_of_game_players = 0
+    number_of_online_players = 0
     for player in thread_game.player_list:
-        number_of_game_players += 1
+        if player.is_online:
+            number_of_online_players += 1
 
-    if number_of_game_players == thread_game.max_players:
+    if number_of_online_players == thread_game.max_players:
         print(f"Fehler: {thread_player_game} ist bereits voll! ")
         conn.close()
         return                                 # erstmal schauen ob in dem Spiel noch Platz ist! Falls nein verbindung ablehnen

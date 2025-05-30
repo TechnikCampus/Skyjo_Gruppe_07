@@ -22,7 +22,9 @@ class Game_state:
 
     def shuffle_cards(self, card_set):
 
-        random.shuffle(card_set)  # das festgelegte Kartenset mit 150 Spielkarten mischeln
+        card_set_copy = card_set.copy()
+
+        random.shuffle(card_set_copy)  # das festgelegte Kartenset mit 150 Spielkarten mischeln
     
         for player in self.player_list:    # jedem Spieler zufällige Karten verteilen(4 Spalten, 3 Zeilen)
 
@@ -30,12 +32,12 @@ class Game_state:
             for _ in range(3):  
                 row = []
                 for _ in range(4):  
-                    card = card_set.pop(0)  
+                    card = card_set_copy.pop(0)  
                     row.append(Card(value=card, colour=None))
                 player.card_deck.append(row)
             
-        self.discard_pile = [Card(value=card_set.pop(0),colour=None,visible=True)]   # eine Karte auf den Ablagestapel (aufgedeckt)
-        self.draw_pile = [Card(value=value, colour=None) for value in card_set]      # restlichen Karten verdeckt auf den Nachziehstapel
+        self.discard_pile = [Card(value=card_set_copy.pop(0),colour=None,visible=True)]   # eine Karte auf den Ablagestapel (aufgedeckt)
+        self.draw_pile = [Card(value=value, colour=None) for value in card_set_copy]      # restlichen Karten verdeckt auf den Nachziehstapel
 
     def remove_triplets(self):
 

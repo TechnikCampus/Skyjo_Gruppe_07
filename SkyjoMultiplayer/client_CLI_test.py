@@ -102,10 +102,14 @@ while True:
 
             if received is None or received == "Nichts gesendet vom Server":
                 print("Warnung: Keine gültige Antwort vom Server erhalten.")
-                continue   
+                continue
+
+            if ("Leave Game",True) in send_list:
+                print("Du hast das Spiel verlassen!") 
+                break
 
         except Exception as e:
-            print(f"Fehler während Kommunikation mit Server: {e}")
+        
             failed_attempts += 1
 
             if failed_attempts > 10:      # wenn mehr als 10 mal Serverkommunikation fehlgeschlagen beenden
@@ -139,7 +143,7 @@ while True:
                 continue
             
         except Exception as e:
-            print(f"Fehler beim Empfangen: {e}")
+            
             failed_attempts += 1
 
             if failed_attempts > 10:      # wenn mehr als 10 mal Serverkommunikation fehlgeschlagen beenden   
