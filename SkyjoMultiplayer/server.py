@@ -6,7 +6,7 @@ import Common as cmn
 from queue import Queue
 
 server = svr.start_socket()     # startet einen Server
-game_list = []                  # Liste aller laufenden Spiele  
+game_dict = {}                  # Dictionary aller laufenden Spiele  
 client_queue = Queue()          # startet eine Queue für threadsichere Datenverarbeitung
 
 
@@ -14,7 +14,7 @@ pygame.init()
 
 while True:
 
-    svr.create_client_thread(server,game_list,client_queue)     # auf neue verbindungen überprüfen, falls da einen 
+    svr.create_client_thread(server,game_dict,client_queue)     # auf neue verbindungen überprüfen, falls da einen 
                                                                 # Thread starten
 
     while not client_queue.empty():     # In dieser Schleife werden Client-Anfragen verarbeitet
@@ -32,65 +32,224 @@ while True:
 
         if client_message[0] == "Online Again":
             print(f"{client_message[1][0]} ist online wieder im Spiel : {client_message[1][1]}")
-            for game in game_list:
+            for game in game_dict.values():
                 for player in game.player_list:
                     if player.name == client_message[1][0]:
                         player.is_online = True                # ein alter Spieler hat sich wieder verbunden!
 
         elif client_message[0] == "New Player":
+
             print(f"{client_message[1][0]} hat sich verbunden, ist in Spiel: {client_message[1][1]}")
-            for game in game_list:
-                if game.name == client_message[1][1]:
-                    game.player_list.append(cmn.Player(client_message[1][0]))   # neue Instanz eines Spielers erstellen mit dem neuen Namen
-                    game.player_counter += 1                                    # Spielerzähler erhöhen
-                    if len(game.player_list) == 1:
-                        game.player_list[0].is_admin = True                     # Wenn der Spieler das Spiel erstellt hat wird er Admin
-                    for player in game.player_list:
-                        if player.name == client_message[1][0]:
-                            player.is_online = True                             # ein neuer Spieler hat sich verbunden
+            game = game_dict.get(client_message[1][1])
+
+            game.player_list.append(cmn.Player(client_message[1][0]))   # neue Instanz eines Spielers erstellen mit dem neuen Namen
+            game.player_counter += 1                                    # Spielerzähler erhöhen
+            if len(game.player_list) == 1:
+                game.player_list[0].is_admin = True                     # Wenn der Spieler das Spiel erstellt hat wird er Admin
+            for player in game.player_list:
+                if player.name == client_message[1][0]:
+                    player.is_online = True                             # ein neuer Spieler hat sich verbunden
+                    player.initialize_card_deck()                       # Kartendeck mit Platzhaltern füllen
         
         elif client_message[0] == "New Game":                                   # ein neues Spiel wurde erstellt!
-            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")                       
+
+            print(f"Ein neues Spiel wurde gestartet mit dem Namen: {client_message[1][0]}")
             new_game = cmn.Game_state(client_message[1][0],client_message[1][1])          # neue Instanz von game_state
 
             # client_message[1][0]: Spielname
             # client_message[1][1]: max Spieleranzahl
                                          
-            game_list.append(new_game)                 # anhängen an game_list
+            game_dict[client_message[1][0]] = new_game                 # anhängen an game_dict
 
 
         elif client_message[0] == "Lost connection": 
             print(f"{client_message[1][0]} hat die Verbindung verloren, ist nicht mehr online in: {client_message[1][1]}")
-            for game in game_list:
-                if game.name == client_message[1][1]:
-                    for player in game.player_list:
-                        if player.name == client_message[1]:
-                            player.is_online = False               # ein Spieler hat die Verbindung verloren
+            game = game_dict.get(client_message[1][1])
+            if game:
+                for player in game.player_list:
+                    if player.name == client_message[1][0]:
+                        player.is_online = False               # ein Spieler hat die Verbindung verloren
 
         elif client_message[0] == "Client info":           # "Befehle" des Clients wurden empfangen!
-            pass
             
             # Hier soll nun ausgeführt werden: Funktionen zur Verarbeitung des Spielerzugs! (siehe game_state)
 
             # client_message[1] = Name des Clients
             # client_message[2] = Name des Spiels in dem der Client ist
 
-            # Untersuchung eines Befehls(Beispiel):
-            # client_message[3].get("take_from_discard_pile", False)
 
+            ################################################################# 
+
+            if "Take from Discard Pile" in client_message[3]:
+
+                x,y = client_message[3].get("Take from Discard Pile")
+
+                if svr.check_for_permission(game_dict,client_message[1],client_message[2],"Take from Discard Pile"):
+                    
+                    game = game_dict.get(client_message[2])
+
+                    for index,player in enumerate(game.player_list):
+                        if player.name == client_message[1]:
+
+                            if player.card_deck[x][y]:
+                                player.card_deck[x][y], game.discard_pile[0] = game.discard_pile[0], player.card_deck[x][y]
+                                game.discard_pile[0].visible = True
+                                        
+                                print(f"Spieler {player.name} hat eine Karte vom Ablagestapel genommen! An Stelle:  {[x,y]}")
+                                player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                final_phase, player_name = game.check_final_phase()
+                                if final_phase:
+                                    game.first_all_flipped_player = player_name
+                                    game.final_phase = True
+                                else:
+                                    game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+
+                                if game.final_phase:
+                                    game.draw_counter -= 1    # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                next_index = (index + 1) % len(game.player_list)
+                                game.player_list[next_index].is_active = True
+
+                            # Existiert die Karte?
+                            # Karte von Ablagestapel mit der des Spielers tauschen
+                            # Karte auf Ablagestapel aufdecken
+
+
+            elif "Check Draw Pile" in client_message[3]:
+
+                if svr.check_for_permission(game_dict,client_message[1],client_message[2],"Check Draw Pile"):
+
+                    game = game_dict.get(client_message[2])
+
+                    game.draw_pile[0].visible = True
+
+                    print(f"{client_message[1]} hat den Nachziehstapel aufgedeckt!")
+
+                    # Nachziehstapel aufdecken
+
+            elif "Take from Draw Pile" in client_message[3]:
+
+                x,y = client_message[3].get("Take from Draw Pile")
+
+                if svr.check_for_permission(game_dict,client_message[1],client_message[2],"Take from Draw Pile"):
+
+                    game = game_dict.get(client_message[2])
+                    for index,player in enumerate(game.player_list):
+                        if player.name == client_message[1]:
+
+                            if player.card_deck[x][y]:
+                                player.card_deck[x][y].visible = True
+                                game.discard_pile[0] = player.card_deck[x][y]
+                                player.card_deck[x][y] = game.draw_pile[0]
+                                game.draw_pile.pop(0)
+
+                                print(f"Spieler {player.name} hat eine Karte vom Nachziehstapel genommen! An Stelle:  {[x,y]}")
+                                player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                final_phase, player_name = game.check_final_phase()
+                                if final_phase:
+                                    game.first_all_flipped_player = player_name
+                                    game.final_phase = True
+                                else:
+                                    game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+
+                                if game.final_phase:
+                                    game.draw_counter -= 1      # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                next_index = (index + 1) % len(game.player_list)
+                                game.player_list[next_index].is_active = True
+
+                                # Existiert die Karte
+                                # Karte im Spielerdeck aufdecken
+                                # In den Ablagestapel kopieren
+                                # Karte vom Nachziehstapel in Kartendeck kopieren
+                                # Oberste Karte vom Nachziehstapel entfernen
+
+
+            elif "Flip Card" in client_message[3]:
+
+                x,y = client_message[3].get("Flip Card")
+
+                if svr.check_for_permission(game_dict,client_message[1],client_message[2],"Flip Card"):
+
+                    game = game_dict.get(client_message[2])
+                    for index,player in enumerate(game.player_list):
+                        if player.name == client_message[1]:
+
+                            if player.card_deck[x][y]:
+                                if not player.card_deck[x][y].visible: 
+                                    player.card_deck[x][y].visible = True
+                                    if player.is_active:
+                                        game.discard_pile.insert(0,game.draw_pile.pop(0))
+
+                                        print(f"{player.name} hat eine Karte umgedreht! An Stelle: {[x,y]}")
+                                        player.is_active = False   # Spieler hat seinen Zug gemacht, ist nicht mehr am Zug
+
+                                        final_phase, player_name = game.check_final_phase()
+                                        if final_phase:
+                                            game.first_all_flipped_player = player_name
+                                            game.final_phase = True
+                                        else:
+                                            game.final_phase = False    # Überprüfen ob Spiel in der Endphase ist nun
+                                                
+                                        if game.final_phase:
+                                            game.draw_counter -= 1     # Wenn Spiel in Endphase Zugcounter reduzieren
+
+                                        next_index = (index + 1) % len(game.player_list)
+                                        game.player_list[next_index].is_active = True
+
+                            # Existiert die Karte?
+                            # Falls noch nicht aufgdeckt aufdecken
+                            # Karte vom Nachziehstapel auf Ablagestapel,
+                            # wenn der Spieler gerade einen Zug gemacht hat, NICHT wenn
+                            # es Rundenbeginn war und der Spieler der startet ausgewählt wird
+
+            elif "Leave Game" in client_message[3]:
+                
+                game = game_dict.get(client_message[2])
+                if game.end_scores:
+                    for player in game.player_list:
+                        if player.name == client_message[1]:
+
+                            print(f"{player.name} hat das Spiel ordentlich verlassen")
+                            game.player_list.remove(player)
+                            game.player_counter -= 1
+
+                                # Wenn das Spiel vorbei ist können die Spieler es verlassen!
+
+            elif "End Game" in client_message[3]:
+                
+                game = game_dict.get(client_message[2])
+
+                for player in game.player_list:
+                    if player.name == client_message[1] and player.is_admin:
+
+                        print(f"Admin {player.name} hat das Spiel geschlossen")
+                        game.closed = True
+
+                                # Admins können jederzeit das Spiel beenden
+
+            #######################################################################
+                                
     # Nach Abprüfen und Verarbeiten der Client-Anfragen generelle Spiellogikfunktionen durchführen:
 
-    for game in game_list:
+    svr.clean_up_games(game_dict)  # entfernt Spiele dich geschlossen wurden und Spieler die weg sind nach Spielende
 
-        if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
+    for game in game_dict.values():
 
-            # Spielstartlogik: Karten mischen usw.
-            svr.start_game(game)
+        if not game.closed:
+            if svr.is_lobby_ready(game):         # schauen ob ein Spiel gestartet werden kann
+
+                # Spielstartlogik: Karten mischen usw.
+                print("Die Spielrunde kann jetzt gestartet werden")
+                svr.start_game(game,cmn.card_set)
         
-        else:
+            else:
 
-            # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
-            svr.update_game_state(game)
+                # Während das Spiel läuft Spielfunktionen ausführen, z.B. Punkte zählen usw.
+                svr.update_game_state(game,cmn.card_set)
+
             
 
 

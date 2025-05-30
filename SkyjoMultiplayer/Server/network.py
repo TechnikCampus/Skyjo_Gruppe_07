@@ -2,6 +2,7 @@
 import threading
 import socket
 import pickle
+import struct
 
 connections = []
 
@@ -10,12 +11,14 @@ def start_socket():
     server.bind(('0.0.0.0', 65432))  
     server.listen(4)
     server.setblocking(False)    # wichtig, das Hauptspielschleife nicht blockiert wird falls keine neue Verbindung da
+    print("Server gestartet")
     return server
 
-def create_client_thread(server,game_list,client_messages): # überprüft neue Vebindungen und erstellt einen Thread pro Client
+def create_client_thread(server,game_dict,client_messages): # überprüft neue Vebindungen und erstellt einen Thread pro Client
 
     try:
         conn,addr = server.accept()
+        conn.settimeout(1.0)
 
         try:
             name_message = pickle.loads(conn.recv(1024))        # evtl empfindlich für Übertragungsfehler!
@@ -35,7 +38,7 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
 
         connections.append((conn,addr))
         print(f"Neuer Thread gestartet für {new_client_name} , {addr}")
-        thread = threading.Thread(target=handle_client, args = (conn,addr,game_list,client_messages,new_client_name,new_client_game,max_player_count))    # thread wird gestartet der handle_client ausführt
+        thread = threading.Thread(target=handle_client, daemon= True, args = (conn,addr,game_dict,client_messages,new_client_name,new_client_game,max_player_count))    # thread wird gestartet der handle_client ausführt
         thread.start()
 
     except BlockingIOError:  # nichts tun falls keine neue Verbindung da
@@ -44,27 +47,66 @@ def create_client_thread(server,game_list,client_messages): # überprüft neue V
 def send_to_client(game,conn,player_name):    # sendet dictionary mit Daten an Client
     
     message_to_client = {
+                        "Game Name": game.name,
                         "Game Round" : game.round,
                         "Draw Counter": game.draw_counter,
                         "Player Number": game.player_counter,
                         "Discard Pile" : game.discard_pile,
                         "Draw Pile" : game.draw_pile,
                         "Players" : game.player_list,
-                        "Your Name": player_name
+                        "Your Name": player_name,
+                        "Final Phase": game.final_phase,
+                        "Active": game.active_player,
+                        "Running": game.running,
+                        "End Scores": game.end_scores
                         } 
-    
-    conn.sendall(pickle.dumps(message_to_client))   
 
-def receive_from_client(conn):    # empfängt von Client gesendetes Dictionary
-    
+    # In den Header packen wie viele Daten gesendet werden, dann Daten senden
+
     try:
-        message_from_client = pickle.loads(conn.recv(4096))
-        return message_from_client
-    except:
-        print("Nichts empfangen")
+        data = pickle.dumps(message_to_client)
+        msg = struct.pack(">I", len(data)) + data
+        conn.sendall(msg)
+    except Exception as e:
+        print(f"Fehler beim Senden an Client: {e}")
+
+def recvall(conn, n):
+
+    # Hilfsfunktion die n Bytes liest
+
+    data = b""
+    while len(data) < n:
+        packet = conn.recv(n - len(data))
+        if not packet:
+            return None
+        data += packet
+    return data
+
+def receive_from_client(conn):
+
+    # Header lesen: Wie viele Bytes schickt der Client?
+
+    try:
+        raw_msglen = recvall(conn, 4)
+        if not raw_msglen:
+            print("Vom Client kam nichts (Header fehlt)")
+            return None
+        msglen = struct.unpack(">I", raw_msglen)[0]
+    
+    # So viele Bytes wie im Header spezifiziert auslesen:
+    
+        data = recvall(conn, msglen)
+        if not data:
+            print("Vom Client kam nichts (Body fehlt)")
+            return None
+        return pickle.loads(data)
+    except socket.timeout:
+        return "Nichts gesendet vom Client"
+    except Exception as e:
+        print(f"Fehler beim Empfangen vom Client: {e}")
         return None
 
-def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client_game,maxplayers):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
+def handle_client(conn,addr,game_dict,client_messages,new_client_name,new_client_game,maxplayers):  # wird pro Spieler aufgerufen um dessen Eingaben zu verarbeiten
     
     # In handle_client() nur über client_messages.put() game_state indirekt verändern!
     # ansonsten Synchronisationsprobleme bei vielen Clients (vermutlich)
@@ -73,23 +115,31 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
     thread_player_game = None
     thread_game = None
     
-    for game in game_list:
-        if game.name == new_client_game:
-            thread_player_game = game.name
-            thread_game = game                   # schauen ob ein Spiel mit diesem Namen schon vorhanden ist
+    try:
+        game = game_dict.get(new_client_game)
+
+        thread_player_game = game.name
+        thread_game = game                   # schauen ob ein Spiel mit diesem Namen schon vorhanden ist
+    except:
+        pass
 
     if not thread_player_game:
         thread_player_game = new_client_game
-        client_messages.put(("New Game",(thread_player_game,maxplayers)))    # server befehl geben ein neues Spiel zu erstellen
-        while True:
-            for game in game_list:
-                if game.name == thread_player_game:
-                    thread_game = game
-                    break
-            if thread_game:
-                break                    # falls nicht vorhanden: neues Spiel erstellen, warten bis es sicher an game_list angehängt ist
+        client_messages.put(("New Game", (thread_player_game, maxplayers)))
 
-    if thread_game.player_counter == thread_game.max_players:
+        # Warten, bis Spiel sicher in game_dict eingetragen ist
+        
+        while True:
+            thread_game = game_dict.get(thread_player_game)
+            if thread_game:
+                break 
+    
+    number_of_online_players = 0
+    for player in thread_game.player_list:
+        if player.is_online:
+            number_of_online_players += 1
+
+    if number_of_online_players == thread_game.max_players:
         print(f"Fehler: {thread_player_game} ist bereits voll! ")
         conn.close()
         return                                 # erstmal schauen ob in dem Spiel noch Platz ist! Falls nein verbindung ablehnen
@@ -105,11 +155,26 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
                 conn.close()
                 return                         # Verbindung ablehnen, keine doppelte namensbelegungen
             
-    if not thread_player_name:                 # falls ganz neuer Name, neuen Spieler erstellen
+    if not thread_player_name and (thread_game.player_counter < thread_game.max_players):                # falls ganz neuer Name, neuen Spieler erstellen
         thread_player_name = new_client_name
         client_messages.put(("New Player", (thread_player_name,thread_player_game)))
 
     while True:
+        
+        # Thread schließen wenn nicht mehr benötigt:
+
+        if thread_game.closed:
+            print(f"Thread für {thread_player_name} geschlossen, da Spiel nicht mehr existiert")
+            conn.close()
+            break
+
+        for player in thread_game.player_list:
+            if player.name == thread_player_name and player.left:
+                print(f"Thread für {thread_player_name} geschlossen, da der Spieler das Spiel verlassen hat")
+                conn.close()
+                break
+        
+        # Hauptthreadschleife:
         
         try:
             send_to_client(thread_game,conn,thread_player_name)  # die wichtigen Daten von game_state werden an die clients geschickt
@@ -120,13 +185,21 @@ def handle_client(conn,addr,game_list,client_messages,new_client_name,new_client
             return                                                               
 
         message = receive_from_client(conn)   # von client einen "Befehl" empfangen
-        if message:
+
+        if message == "Nichts gesendet vom Client":
+            continue 
+
+        elif message:
             client_messages.put(("Client info",thread_player_name,thread_player_game,message))   # diesen Befehl in die Queue anhängen (threadsicher)
+            
         else:
             conn.close()
             client_messages.put(("Lost connection",(thread_player_name,thread_player_game)))    # so dass game_state informiert werden kann
                                                                                                 # dass dieser Spieler verschwunden ist
             return
+        
+
+
 
 
 

@@ -1,7 +1,6 @@
 ##### Main client script #####
 import pygame
 import Client as clnt
-import pickle
 import sys
 
 pygame.init()
@@ -30,8 +29,7 @@ while True:
 
 
     send_list = [
-        ("take_from_discard_pile",True),
-        ("flip_card",(4,7))
+
     ]
     
     # send_list kann auch leer sein wenn nichts gesendet werden muss
