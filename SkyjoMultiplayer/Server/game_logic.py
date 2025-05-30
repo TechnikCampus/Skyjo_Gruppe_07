@@ -1,10 +1,18 @@
 ##### Game logic functions on the server #####
 
-def clean_up_games(game_list):   # entfernt geschlossene Spiel, Spieler die gegangen sind, und leere Spiele
+def clean_up_games(game_dict):   # entfernt geschlossene Spiel, Spieler die gegangen sind, und leere Spiele
 
-    game_list[:] = [game for game in game_list if not (getattr(game, "closed", False) or (game.end_scores and game.player_counter == 0))]
+    games_to_remove = []
 
-    for game in game_list:
+    for game_name, game in game_dict.items():
+        if game.closed or (game.end_scores and game.player_counter == 0):
+            games_to_remove.append(game_name)
+
+    for name in games_to_remove:
+        print(f"Spiel '{name}' wird entfernt (geschlossen oder leer).")
+        del game_dict[name]
+
+    for game in game_dict.values():
 
         game.player_list[:] = [player for player in game.player_list if not getattr(player, "left", False)]
 
@@ -81,20 +89,19 @@ def is_lobby_ready(game):
     else: 
         return False
 
-def check_for_permission(gamelist, playername, gamename, player_order):
+def check_for_permission(game_dict, playername, gamename, player_order):
 
     can_make_move = False
     client_game = None
     client_player = None
 
     # Spiel und Spieler suchen
-    for game in gamelist:
-        if game.name == gamename:
-            client_game = game
-            for player in game.player_list:
-                if player.name == playername:
-                    client_player = player
-                    can_make_move = player.is_active
+    client_game = game_dict.get(gamename)
+
+    for player in client_game.player_list:
+        if player.name == playername:
+            client_player = player
+            can_make_move = player.is_active
 
     # SCHUTZ: Wenn Spiel oder Spieler nicht mehr existieren (z. B. gelöscht)
     if client_game is None or client_player is None:
