@@ -22,17 +22,19 @@ slider_height = 50
 class GUI:
     def __init__(self, screen):
         self.screen = screen
-        self.server_ip = ""
-        self.client_name = ""
-        self.game_name = ""
-        self.socket = None
-        self.Menu_State = Menu_State.MAIN_MENU
-        self.game_exit = False
-        self.max_players = 4  # Default max players
         self.HEIGHT = screen.get_height()
         self.WIDTH = screen.get_width()
         self.Main_Menu_Widgets = {}
         self.Host_Game_Widgets = {}
+
+        self.menu_state = Menu_State.MAIN_MENU  # Start with the main menu
+        self.running = True
+        self.server_ip = ""
+        self.client_name = ""
+        self.game_name = ""
+        self.max_players = 0
+        self.sock = None
+
         self.create_Host_Game()
         self.create_Main_Menu()
 
@@ -42,7 +44,7 @@ class GUI:
         for widget in self.Host_Game_Widgets.values():
             widget.hide()
 
-    def Host_Game(self):
+    def Host_Game_Menu(self):
         for widget in self.Host_Game_Widgets.values():
             widget.show()
         for widget in self.Main_Menu_Widgets.values():
@@ -65,38 +67,6 @@ class GUI:
         for widget in self.Host_Game_Widgets.values():
             widget.hide()
 
-    def connect_to_server(self):
-        # Initialize the connection to the server
-        self.server_ip = self.Main_Menu_Widgets["ip_textbox"].getText()
-        if not self.server_ip:
-            print("Server IP cannot be empty.")
-            return
-        print(f"Connecting to server at {self.server_ip}")
-        # Here you would typically call a function to connect to the server
-        # e.g., clnt.connect_to_server(self.server_ip, self.client_name)
-
-        self.Menu_State = Menu_State.HOST_GAME  # Change to host game state after connecting
-    
-    def start_hosting(self):
-        # Initialize the hosting process
-        self.client_name = self.Host_Game_Widgets["client_name_textbox"].getText()
-        self.game_name = self.Host_Game_Widgets["game_name_textbox"].getText()
-        if not self.client_name or not self.game_name:
-            print("Client name and game name cannot be empty.")
-            return
-        print(f"Hosting game '{self.game_name}' as {self.client_name} with max players {self.max_players}")
-        self.socket = network.connect_to_server(self.client_name, self.game_name, self.max_players, self.server_ip)
-
-        self.Menu_State = Menu_State.GAME  # Change to game state after hosting
-
-    def exit_game(self):
-        # Initialize the exit process
-        print("Exiting game...")
-        self.game_exit = True
-
-    def back(self):
-        self.Menu_State = Menu_State.MAIN_MENU  # Change to main menu state
-
     def create_Main_Menu(self):
         # Create the main menu widgets
         self.Main_Menu_Widgets = {
@@ -105,14 +75,14 @@ class GUI:
                 x=self.WIDTH // 2 - textbox_width // 2, y=self.HEIGHT // 2 - textbox_height // 2, width=textbox_width, height=textbox_height,  
                 placeholderText='Enter server IP', 
                 fontSize=textbox_font_size,
-                onSubmit=self.connect_to_server
+                onSubmit=self.input_ip
             ),
             "connect_button": button.Button(
                 self.screen, 
                 text='Connect to Server', 
                 fontSize=button_font_size,
                 x=self.WIDTH // 2 - button_width // 2, y=self.HEIGHT - 2 * button_height - 30, width=button_width, height=button_height, 
-                onClick=self.connect_to_server
+                onClick=self.input_ip
             ),
             "exit_button": button.Button(
                 self.screen, 
@@ -120,7 +90,7 @@ class GUI:
                 fontSize=button_font_size,
                 x=self.WIDTH // 2 - button_width // 2, y=self.HEIGHT - button_height - 20, width=button_width, height=button_height, 
                 onClick=self.exit_game
-            )
+            ),
         }
 
     def create_Host_Game(self):
@@ -159,7 +129,45 @@ class GUI:
                 onClick=self.start_hosting
             )
         }
-    
-    def get_Menu_State(self):
-        # Return the current menu state
-        return self.Menu_State
+
+    def start_hosting(self):
+        # Initialize the hosting process
+        self.client_name = self.Host_Game_Widgets["client_name_textbox"].getText()
+        game_name = self.Host_Game_Widgets["game_name_textbox"].getText()
+        if not self.client_name or not game_name:
+            print("Client name and game name cannot be empty.")
+            return
+        print(f"Hosting game '{game_name}' as {self.client_name} with max players {self.max_players}")
+        self.sock = network.connect_to_server(self.client_name, game_name, self.max_players, self.server_ip)
+
+        self.menu_state = Menu_State.GAME  # Change to game state after hosting
+
+    def input_ip(self):
+            # Initialize the connection to the server
+            self.server_ip = self.Main_Menu_Widgets["ip_textbox"].getText()
+            if not self.server_ip:
+                print("Server IP cannot be empty.")
+                return
+            print(f"Connecting to server at {self.server_ip}")
+            # Here you would typically call a function to connect to the server
+            # e.g., clnt.connect_to_server(self.server_ip, self.client_name)
+
+            self.menu_state = Menu_State.HOST_GAME  # Change to host game state after connecting
+
+    def back(self):
+        self.menu_state = Menu_State.MAIN_MENU  # Change to main menu state
+
+    def exit_game(self):
+        # Initialize the exit process
+        print("Exiting game...")
+        self.running = False
+
+    def get_gui_state(self):
+        return {
+            "menu_state": self.menu_state,
+            "client_name": self.client_name,
+            "game_name": self.game_name,
+            "server_ip": self.server_ip,
+            "sock": self.sock,
+            "quitting": not self.running
+        }
