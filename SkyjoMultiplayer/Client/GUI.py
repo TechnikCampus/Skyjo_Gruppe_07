@@ -1,9 +1,11 @@
 ##### GUI Functions and Classes for the client #####
 
 from pygame_widgets import button, textbox, slider
+import pygame
 from pygame import freetype
 from Client.MenuState import Menu_State
 from Client import network
+from Common import *
 
 freetype.init()
 font = freetype.Font(None, size=30)
@@ -35,6 +37,8 @@ class GUI:
         self.max_players = 0
         self.sock = None
 
+        self.CARD_IMAGES = {}  # Wörterbuch zum Speichern der geladenen Kartenbilder
+
         self.create_Host_Game()
         self.create_Main_Menu()
 
@@ -61,11 +65,52 @@ class GUI:
             size=30
         )
 
-    def Game(self):
+    def Game(self, snapshot=None):
         for widget in self.Main_Menu_Widgets.values():
             widget.hide()
         for widget in self.Host_Game_Widgets.values():
             widget.hide()
+
+        if snapshot:
+            # Display the game state
+            font.render_to(
+                self.screen, 
+                (self.WIDTH // 2 - 100, 50), 
+                f'Game: {self.game_name}', 
+                (0, 0, 0), 
+                size=40
+            )
+            # Here you would render the game state using the snapshot data
+            # For example, displaying player decks, discard pile, etc.
+            player_iter = 0
+            for i, player in enumerate(snapshot.get("Players")):
+                card_surface = pygame.Surface(((250) * 4 - 10, (370) * 3 + 100)).convert_alpha()  # Create a surface for the player's cards
+                card_surface.fill((255, 255, 255, 0))  # Fill with transparent color
+
+                card_deck = player.card_deck
+                for j, card_row in enumerate(card_deck):
+                    for k, card_info in enumerate(card_row):
+                        visible = card_info.get_visible()
+                        if visible:
+                            card_image = self.CARD_IMAGES.get(str(card_info.get_value())) 
+                        else:
+                            card_image = self.CARD_IMAGES.get("back")
+                        
+                        card_surface.blit(card_image, (k * 250, j * 370 + 90))
+                if player.name == self.client_name:
+                    card_surface = pygame.transform.scale_by(card_surface, 0.5)  # Scale down the card surface
+                    self.screen.blit(card_surface, (self.WIDTH / 2 - card_surface.get_width() / 2, self.HEIGHT - card_surface.get_height() - 50))  # Draw the card surface on the screen
+                else:
+                    font.render_to(
+                        card_surface, 
+                        (10, 10),
+                        f'Player: {player.name}', 
+                        (0, 0, 0), 
+                        size=70
+                    )
+                    card_surface = pygame.transform.scale_by(card_surface, 0.3)  # Scale down the card surface
+                    self.screen.blit(card_surface, (player_iter * 600 + 100, 100))  # Draw the card surface on the screen
+                    player_iter += 1
 
     def create_Main_Menu(self):
         # Create the main menu widgets
@@ -133,12 +178,13 @@ class GUI:
     def start_hosting(self):
         # Initialize the hosting process
         self.client_name = self.Host_Game_Widgets["client_name_textbox"].getText()
-        game_name = self.Host_Game_Widgets["game_name_textbox"].getText()
-        if not self.client_name or not game_name:
+        self.game_name = self.Host_Game_Widgets["game_name_textbox"].getText()
+        if not self.client_name or not self.game_name:
             print("Client name and game name cannot be empty.")
             return
-        print(f"Hosting game '{game_name}' as {self.client_name} with max players {self.max_players}")
-        self.sock = network.connect_to_server(self.client_name, game_name, self.max_players, self.server_ip)
+        print(f"Hosting game '{self.game_name}' as {self.client_name} with max players {self.max_players}")
+        self.sock = network.connect_to_server(self.client_name, self.game_name, self.max_players, self.server_ip)
+        self.sock.settimeout(1.0)  # Set a timeout for the socket operations
 
         self.menu_state = Menu_State.GAME  # Change to game state after hosting
 
@@ -171,3 +217,11 @@ class GUI:
             "sock": self.sock,
             "quitting": not self.running
         }
+    
+    def load_images(self):
+        # Load card images from the Common.card module
+        for card_value, file_name in card.CARD_FILE_MAPPING.items():  # Iteration über die Zuordnung
+            card_image = pygame.image.load(f"Common/Karten_png/{file_name}").convert_alpha()  # Laden des Bildes
+            self.CARD_IMAGES[str(card_value)] = card_image  # Speichern des Bildes im Wörterbuch
+        
+        print("Card images loaded successfully.")
