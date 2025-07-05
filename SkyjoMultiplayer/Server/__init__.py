@@ -6,3 +6,5 @@ from .game_logic import start_game
 from .game_logic import update_game_state
 from .game_logic import check_for_permission
 from .game_logic import clean_up_games
+from .game_logic import handle_connections
+from .game_logic import handle_games

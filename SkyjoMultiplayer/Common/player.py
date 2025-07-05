@@ -4,16 +4,16 @@ from .card import Card
 class Player:
     def __init__(self, name):
 
-        self.ip_addr = ""
+        self.ip_addr = ""                 # IPv4 des Spielers
         self.name = name
-        self.is_online = False
-        self.round_score = 0
-        self.visible_round_score = 0
-        self.total_score = 0
-        self.card_deck = []
-        self.is_active = False
-        self.is_admin = False
-        self.left = False          # Spieler wird aus der Spielerliste entfernt wenn hier True gesetzt wird
+        self.is_online = False            # ist der Spieler online?
+        self.round_score = 0              # Rundenpunktzahl (mit verdeckten Karten)
+        self.visible_round_score = 0      # für den Spieler sichtbare Rundenpunktzahl
+        self.total_score = 0              # Spielergesamtpunktzahl
+        self.card_deck = []               # Spielerkartendeck
+        self.is_active = False            # ist der Spieler am Zug?
+        self.is_admin = False             # ist der Spieler ein Admin?
+        self.left = False                 # Spieler wird aus der Spielerliste entfernt wenn hier True gesetzt wird
 
     def check_flipped_cards(self):
     
@@ -73,6 +73,9 @@ class Player:
         return triplets_found_in_column
     
     def initialize_card_deck(self):
+
+        # Füllt Kartendeck mit Platzhaltern solange die Runde noch nicht gestartet hat
+        # weil noch auf Spieler gewartet wird
 
         for i in range(3):
             row = [Card(0,colour = None, visible = True) for _ in range(4)]
