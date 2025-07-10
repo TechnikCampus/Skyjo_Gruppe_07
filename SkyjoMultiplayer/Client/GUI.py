@@ -241,323 +241,66 @@ class SkyjoGUI:
                 "Lade Spielkomponenten...",
                 COLORS['warning']
             )
+            return None
+        
+        # Update game state
+        self.game_state.update_initial_phase(snapshot, self.client_name)
+        
+        self.widget_manager.show_widgets('game')
+        self.widget_manager.hide_widgets('main_menu', 'host_game')
+        
+        # Check if game is over
+        game_running = snapshot.get("Running", True)
+        end_scores = snapshot.get("End Scores", [])
+        
+        print(f"DEBUG: game_running = {game_running}, end_scores = {end_scores}")  # Debug output
+        
+        if not game_running and end_scores:
+            print("DEBUG: Showing endscreen overlay")  # Debug output
+            # Game is over - show endscreen overlay
+            is_my_turn = self.game_state.is_my_turn(snapshot, self.client_name)
             
-            # Store button rect for click detection
-            self.flip_button_rect = button_rect
-        else:
-            self.flip_button_rect = None
-    
-    def _render_game_header(self, snapshot, is_my_turn):
-        """Rendert Game Header"""
-        # Game Title
-        title_text = f"Spiel: {self.game_name}"
-        FONTS['subtitle'].render_to(
-            self.screen,
-            (50, 30),
-            title_text,
-            COLORS['text_primary']
-        )
-        
-        # Player Status
-        if self.initial_phase:
-            my_player = self._get_my_player(snapshot)
-            if my_player:
-                flipped_count = self._count_flipped_cards(my_player)
-                status_text = f"Spieler: {self.client_name} - SPIELSTART: {flipped_count}/2 Karten aufgedeckt"
-                color = COLORS['warning'] if flipped_count < 2 else COLORS['success']
-            else:
-                status_text = f"Spieler: {self.client_name} - SPIELSTART: Warte auf Spielerinfo..."
-                color = COLORS['text_secondary']
-        else:
-            status_text = f"Spieler: {self.client_name}"
-            if self.card_in_hand:
-                status_text += " (Karte in der Hand)"
-            color = COLORS['accent'] if self.card_in_hand else COLORS['text_primary']
-        
-        FONTS['normal'].render_to(
-            self.screen,
-            (50, 70),
-            status_text,
-            color
-        )
-        
-        # Turn Status
-        active_player = snapshot.get("Active")
-        if is_my_turn:
-            turn_text = "Du bist am Zug!"
-            color = COLORS['success']
-        elif active_player:
-            turn_text = f"{active_player} ist am Zug"
-            color = COLORS['text_secondary']
-        else:
-            turn_text = "Kein aktiver Spieler (alle decken Karten auf)"
-            color = COLORS['warning']
-        
-        FONTS['normal'].render_to(
-            self.screen,
-            (50, 110),
-            turn_text,
-            color
-        )
-    
-    def _render_action_selection_status(self, is_my_turn):
-        """Rendert den Status der Aktionsauswahl"""
-        if self.initial_phase:
-            return  # No action selection needed in initial phase
+            # Render normal game components first (as background)
+            self.game_renderer.render_game_header(
+                snapshot, self.client_name, self.game_name, is_my_turn, 
+                self.game_state.initial_phase
+            )
             
-        if not is_my_turn:
-            return  # No action selection needed when not our turn
+            # Render piles and get rects for event handling
+            draw_rect, discard_rect = self.game_renderer.render_piles(
+                snapshot, self.game_state.draw_pile_checked, self.hovered_pile,
+                is_my_turn, self.game_state.initial_phase
+            )
             
-        # Action selection status box
-        status_y = 150
-        status_height = 40
-        
-        pygame.draw.rect(self.screen, COLORS['button_bg'], 
-                        (50, status_y, self.WIDTH - 100, status_height), border_radius=5)
-        
-        if self.selected_action_type:
-            action_names = {
-                "flip": "Karte umdrehen",
-                "draw": "Ziehen vom Nachziehstapel", 
-                "discard": "Nehmen vom Ablagestapel"
-            }
-            status_text = f"Gewählte Aktion: {action_names.get(self.selected_action_type, 'Unbekannt')}"
-            color = COLORS['success']
-        else:
-            status_text = "Keine Aktion gewählt - Wähle eine Aktion mit den Buttons unten"
-            color = COLORS['warning']
+            # Render player cards and get rects for event handling
+            self.hovered_card, card_rects = self.game_renderer.render_player_cards(
+                snapshot, self.client_name, self.game_state.selected_card,
+                is_my_turn, self.game_state.initial_phase, self.game_state.draw_pile_checked
+            )
             
-        FONTS['normal'].render_to(
-            self.screen,
-            (60, status_y + 10),
-            status_text,
-            color
-        )
-    
-    def _render_action_button_highlights(self):
-        """Rendert Highlights für die ausgewählte Aktion"""
-        if not self.selected_action_type or self.initial_phase:
-            return
+            # Render other players
+            self.game_renderer.render_other_players(snapshot, self.client_name)
             
-        # Get button positions from the game widgets
-        button_map = {
-            "flip": "flip_action_button",
-            "draw": "draw_action_button", 
-            "discard": "discard_action_button"
-        }
-        
-        button_name = button_map.get(self.selected_action_type)
-        if button_name and button_name in self.widgets['game']:
-            # Recreate the position calculation with updated values
-            action_button_y = self.HEIGHT - 160
-            action_button_width = 150
-            action_spacing = action_button_width + 30
-            center_x = self.WIDTH // 2
-            action_start_x = center_x - (3 * action_spacing) // 2
+            # Render endscreen overlay on top
+            play_again_button_rect, exit_button_rect = self.game_renderer.render_endscreen_overlay(
+                end_scores, self.client_name, snapshot
+            )
             
-            button_positions = {
-                "flip_action_button": action_start_x,
-                "draw_action_button": action_start_x + action_spacing,
-                "discard_action_button": action_start_x + 2 * action_spacing
-            }
+            # Handle endscreen events
+            if events:
+                for event in events:
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        if play_again_button_rect and play_again_button_rect.collidepoint(event.pos):
+                            # Reset game state and return to main menu for a new game
+                            self.game_state.reset_turn_state()
+                            self.menu_state = Menu_State.MAIN_MENU
+                            return None
+                        elif exit_button_rect and exit_button_rect.collidepoint(event.pos):
+                            # Exit to main menu
+                            self.game_state.reset_turn_state()
+                            self.menu_state = Menu_State.MAIN_MENU
+                            return None
             
-            if button_name in button_positions:
-                button_x = button_positions[button_name]
-                # Draw a highlight border around the selected button
-                pygame.draw.rect(self.screen, COLORS['selected'], 
-                               (button_x - 3, action_button_y - 3, action_button_width + 6, 41), 3)
-    
-    def _render_game_instructions(self, is_my_turn):
-        """Rendert Spielanweisungen"""
-        if self.initial_phase:
-            # In initial phase, show flipping instructions
-            instruction = "SPIELSTART: Decke 2 Karten auf! Klicke auf verdeckte Karten und dann 'Karte umdrehen'. Rechtsklick = Auswahl löschen"
-            color = COLORS['success']
-        elif not is_my_turn:
-            instruction = "Warte auf deinen Zug..."
-            color = COLORS['text_secondary']
-        elif self.draw_pile_checked:
-            if self.selected_card_for_flip:
-                instruction = f"Nachziehstapel aufgedeckt → Verdeckte Karte an Position ({self.selected_card_for_flip[0]}, {self.selected_card_for_flip[1]}) ausgewählt zum Umdrehen"
-            elif self.selected_position:
-                instruction = f"Nachziehstapel aufgedeckt → Aufgedeckte Karte an Position ({self.selected_position[0]}, {self.selected_position[1]}) wird getauscht"
-            else:
-                instruction = "Nachziehstapel aufgedeckt → Wähle eine Karte: Verdeckte zum Umdrehen, Aufgedeckte zum Tauschen"
-            color = COLORS['warning']
-        elif self.card_in_hand:
-            instruction = "Du hast eine Karte → Klicke auf eine Position um sie zu platzieren"
-            color = COLORS['accent']
-        elif self.selected_position:
-            instruction = f"Position ({self.selected_position[0]}, {self.selected_position[1]}) ausgewählt → Klicke auf Ablagestapel zum Tauschen"
-            color = COLORS['warning']
-        elif self.selected_card_for_flip:
-            instruction = f"Verdeckte Karte an Position ({self.selected_card_for_flip[0]}, {self.selected_card_for_flip[1]}) ausgewählt → Klicke 'Karte umdrehen' oder wähle Ablagestapel"
-            color = COLORS['accent']
-        else:
-            instruction = "Dein Zug: Klicke auf Nachziehstapel um zu beginnen, oder wähle eine Karte für den Ablagestapel"
-            color = COLORS['text_primary']
-        
-        # Instruction Box
-        instruction_y = self.HEIGHT - 140
-        pygame.draw.rect(self.screen, COLORS['button_bg'], 
-                        (20, instruction_y - 10, self.WIDTH - 40, 40), border_radius=5)
-        
-        FONTS['normal'].render_to(
-            self.screen,
-            (30, instruction_y),
-            instruction,
-            color
-        )
-    
-    def _render_piles(self, snapshot, events, is_my_turn):
-        """Rendert Draw und Discard Pile"""
-        # Store snapshot for hover checking
-        self._current_snapshot = snapshot
-        
-        pile_y = 300
-        draw_x = self.WIDTH - 300
-        discard_x = self.WIDTH - 450
-        
-        # Draw Pile
-        draw_pile = snapshot.get("Draw Pile", [])
-        if draw_pile:
-            # Get the top card of the draw pile
-            top_card = draw_pile[0] if draw_pile else None
-            
-            # Check if draw pile is checked (top card visible)
-            self.draw_pile_checked = top_card and top_card.get_visible()
-            
-            # Show the card face if it's visible, otherwise show the back
-            if self.draw_pile_checked:
-                draw_image = self.card_images.get(str(top_card.get_value()))
-                label_text = "Nachziehstapel"
-            else:
-                draw_image = self.card_images.get("back")
-                label_text = "Nachziehstapel"
-            
-            if draw_image:
-                draw_rect = pygame.Rect(draw_x, pile_y, LAYOUT['card_width'], LAYOUT['card_height'])
-                self.screen.blit(draw_image, draw_rect)
-                
-                # Hover highlight - different logic based on state
-                if (self.hovered_pile == "draw" and is_my_turn and not self.initial_phase and 
-                    (not self.draw_pile_checked or self.selected_position or self.selected_card_for_flip)):
-                    pygame.draw.rect(self.screen, COLORS['accent'], draw_rect, 4)
-                    # Tooltip based on draw pile state
-                    if self.draw_pile_checked and self.selected_position:
-                        tooltip_text = "Klicken: Karte tauschen"
-                    elif self.draw_pile_checked:
-                        tooltip_text = "Aufgedeckt - Wähle Karte zum Tauschen oder Umdrehen"
-                    else:
-                        tooltip_text = "Klicken: Nachziehstapel aufdecken"
-                    
-                    FONTS['small'].render_to(
-                        self.screen,
-                        (draw_x, pile_y + LAYOUT['card_height'] + 5),
-                        tooltip_text,
-                        COLORS['accent']
-                    )
-                
-                # Label with state info
-                label_color = COLORS['warning'] if self.draw_pile_checked else COLORS['text_primary']
-                FONTS['small'].render_to(
-                    self.screen,
-                    (draw_x, pile_y - 25),
-                    label_text,
-                    label_color
-                )
-                
-                # Click handling - updated logic for new game rules
-                if (events and is_my_turn and not self.initial_phase):
-                    for event in events:
-                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            if draw_rect.collidepoint(event.pos):
-                                if not self.draw_pile_checked:
-                                    # Check/reveal the draw pile - no position selection needed yet
-                                    print("Checking draw pile...")
-                                    return ("Check Draw Pile", True)
-                                else:
-                                    # Draw pile is checked - check if a position is selected for swapping
-                                    if self.selected_position:
-                                        print(f"Taking from draw pile to position {self.selected_position}")
-                                        self.card_in_hand = True
-                                        action = ("Take from Draw Pile", self.selected_position)
-                                        # Reset selections
-                                        self.selected_position = None
-                                        self.selected_card_for_flip = None
-                                        return action
-                                    else:
-                                        print("Draw pile already checked - select a card position first")
-                                        return None
-            else:
-                print(f"No image found for draw pile card")
-        
-        # Discard Pile
-        discard_pile = snapshot.get("Discard Pile", [])
-        if discard_pile:
-            # Server uses discard_pile[0] as the top card, not [-1]
-            top_card = discard_pile[0]
-            discard_image = self.card_images.get(str(top_card.get_value()))
-            if discard_image:
-                discard_rect = pygame.Rect(discard_x, pile_y, LAYOUT['card_width'], LAYOUT['card_height'])
-                self.screen.blit(discard_image, discard_rect)
-                
-                # Hover highlight
-                if (self.hovered_pile == "discard" and is_my_turn and not self.initial_phase and 
-                    (self.selected_position or self.selected_card_for_flip)):
-                    pygame.draw.rect(self.screen, COLORS['accent'], discard_rect, 4)
-                    # Tooltip
-                    tooltip_text = "Klicken: Karte nehmen und tauschen"
-                    
-                    FONTS['small'].render_to(
-                        self.screen,
-                        (discard_x, pile_y + LAYOUT['card_height'] + 5),
-                        tooltip_text,
-                        COLORS['accent']
-                    )
-                
-                # Label
-                FONTS['small'].render_to(
-                    self.screen,
-                    (discard_x, pile_y - 25),
-                    "Ablagestapel",
-                    COLORS['text_primary']
-                )
-                
-                # Click handling - requires position selection first
-                if (events and is_my_turn and not self.initial_phase):
-                    for event in events:
-                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            if discard_rect.collidepoint(event.pos):
-                                # Check if either a position or card for flip is selected
-                                target_position = self.selected_position or self.selected_card_for_flip
-                                if target_position:
-                                    print(f"Taking from discard pile to position {target_position}")
-                                    self.card_in_hand = True
-                                    action = ("Take from Discard Pile", target_position)
-                                    # Reset selections
-                                    self.selected_position = None
-                                    self.selected_card_for_flip = None
-                                    return action
-                                else:
-                                    print("Bitte zuerst eine Position zum Tauschen auswählen")
-                                    return None
-            else:
-                print(f"No image found for discard pile card value: {top_card.get_value()}")
-        
-        return None
-    
-    def _render_player_cards(self, snapshot, events, is_my_turn):
-        """Rendert die Karten des aktuellen Spielers"""
-        players = snapshot.get("Players", [])
-        current_player = None
-        
-        for player in players:
-            if player.name == self.client_name:
-                current_player = player
-                break
-        
-        if not current_player:
             return None
         
         is_my_turn = self.game_state.is_my_turn(snapshot, self.client_name)
@@ -634,259 +377,6 @@ class SkyjoGUI:
                     pos = self.game_state.selected_card['position']
                     self.game_state.clear_selection()
                     return ("Take from Discard Pile", pos)
-        # Card grid positioning
-        grid_start_x = 50
-        grid_start_y = 200
-        card_spacing = LAYOUT['card_spacing']
-        
-        # Get mouse position but don't reset hover state yet
-        mouse_pos = pygame.mouse.get_pos()
-        current_hovered_card = None
-        
-        # Add right-click to clear selections
-        if events:
-            for event in events:
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  # Right click
-                    print("Right click detected - clearing all selections")
-                    self.selected_position = None
-                    self.selected_card_for_flip = None
-        
-        card_deck = current_player.card_deck
-        for row_idx, card_row in enumerate(card_deck):
-            for col_idx, card in enumerate(card_row):
-                x = grid_start_x + col_idx * (LAYOUT['card_width'] + card_spacing)
-                y = grid_start_y + row_idx * (LAYOUT['card_height'] + card_spacing)
-                
-                # Check if card was removed (three in a column)
-                if card is None:
-                    # Render empty space for removed card
-                    card_rect = pygame.Rect(x, y, LAYOUT['card_width'], LAYOUT['card_height'])
-                    # Draw a subtle border to show where the card was
-                    pygame.draw.rect(self.screen, COLORS['text_secondary'], card_rect, 2)
-                    # Draw an X or some indicator
-                    pygame.draw.line(self.screen, COLORS['text_secondary'], 
-                                   (x + 10, y + 10), (x + LAYOUT['card_width'] - 10, y + LAYOUT['card_height'] - 10), 3)
-                    pygame.draw.line(self.screen, COLORS['text_secondary'], 
-                                   (x + LAYOUT['card_width'] - 10, y + 10), (x + 10, y + LAYOUT['card_height'] - 10), 3)
-                    
-                    # Check for hover and handle mouse events for removed cards
-                    if events:
-                        for event in events:
-                            if event.type == pygame.MOUSEMOTION:
-                                if card_rect.collidepoint(event.pos):
-                                    current_hovered_card = (row_idx, col_idx, None)
-                    
-                    # Check if mouse is currently over this removed card
-                    if card_rect.collidepoint(mouse_pos):
-                        current_hovered_card = (row_idx, col_idx, None)
-                    
-                    # Show tooltip on hover for removed cards
-                    if (current_hovered_card and current_hovered_card[0] == row_idx and 
-                        current_hovered_card[1] == col_idx and current_hovered_card[2] is None):
-                        FONTS['small'].render_to(
-                            self.screen,
-                            (x, y + LAYOUT['card_height'] + 5),
-                            "Karte entfernt (3 gleiche in Spalte)",
-                            COLORS['text_secondary']
-                        )
-                    continue
-                
-                # Get card image for normal cards
-                if card.get_visible():
-                    card_image = self.card_images.get(str(card.get_value()))
-                else:
-                    card_image = self.card_images.get("back")
-                
-                if card_image:
-                    card_rect = pygame.Rect(x, y, LAYOUT['card_width'], LAYOUT['card_height'])
-                    self.screen.blit(card_image, card_rect)
-                    
-                    # Highlight selected position
-                    if self.selected_position == (row_idx, col_idx):
-                        pygame.draw.rect(self.screen, COLORS['selected'], card_rect, 4)
-                    
-                    # Highlight selected card for flipping
-                    if self.selected_card_for_flip == (row_idx, col_idx):
-                        pygame.draw.rect(self.screen, COLORS['selected'], card_rect, 4)
-                    
-                    # Check if mouse is currently over this card
-                    if card_rect.collidepoint(mouse_pos):
-                        current_hovered_card = (row_idx, col_idx, card)
-                    
-                    # Hover highlights and tooltips for intuitive interaction
-                    if current_hovered_card and current_hovered_card[0] == row_idx and current_hovered_card[1] == col_idx:
-                        if self.initial_phase:
-                            if not card.get_visible():
-                                pygame.draw.rect(self.screen, COLORS['success'], card_rect, 3)
-                                FONTS['small'].render_to(
-                                    self.screen,
-                                    (x, y + LAYOUT['card_height'] + 5),
-                                    "Klicken: Für Umdrehen auswählen",
-                                    COLORS['success']
-                                )
-                            else:
-                                pygame.draw.rect(self.screen, COLORS['text_secondary'], card_rect, 2)
-                                FONTS['small'].render_to(
-                                    self.screen,
-                                    (x, y + LAYOUT['card_height'] + 5),
-                                    "Bereits aufgedeckt",
-                                    COLORS['text_secondary']
-                                )
-                        elif is_my_turn:
-                            if self.draw_pile_checked:
-                                # Special mode: draw pile is checked, allow both flipping and swapping
-                                if not card.get_visible():
-                                    # Hidden card - can be flipped
-                                    pygame.draw.rect(self.screen, COLORS['success'], card_rect, 3)
-                                    FONTS['small'].render_to(
-                                        self.screen,
-                                        (x, y + LAYOUT['card_height'] + 5),
-                                        "Klicken: Zum Umdrehen auswählen",
-                                        COLORS['success']
-                                    )
-                                else:
-                                    # Visible card - can be swapped
-                                    pygame.draw.rect(self.screen, COLORS['warning'], card_rect, 3)
-                                    FONTS['small'].render_to(
-                                        self.screen,
-                                        (x, y + LAYOUT['card_height'] + 5),
-                                        "Klicken: Zum Tauschen auswählen",
-                                        COLORS['warning']
-                                    )
-                            elif not card.get_visible():
-                                pygame.draw.rect(self.screen, COLORS['success'], card_rect, 3)
-                                FONTS['small'].render_to(
-                                    self.screen,
-                                    (x, y + LAYOUT['card_height'] + 5),
-                                    "Klicken: Umdrehen oder für Ablagestapel wählen",
-                                    COLORS['success']
-                                )
-                            elif card.get_visible() and not self.card_in_hand:
-                                pygame.draw.rect(self.screen, COLORS['warning'], card_rect, 3)
-                                FONTS['small'].render_to(
-                                    self.screen,
-                                    (x, y + LAYOUT['card_height'] + 5),
-                                    "Klicken: Für Tausch mit Ablagestapel wählen",
-                                    COLORS['warning']
-                                )
-                            elif self.card_in_hand:
-                                pygame.draw.rect(self.screen, COLORS['accent'], card_rect, 3)
-                                FONTS['small'].render_to(
-                                    self.screen,
-                                    (x, y + LAYOUT['card_height'] + 5),
-                                    "Klicken: Karte platzieren",
-                                    COLORS['accent']
-                                )
-                        else:
-                            # Not my turn, but show hover feedback
-                            pygame.draw.rect(self.screen, COLORS['text_secondary'], card_rect, 2)
-                            FONTS['small'].render_to(
-                                self.screen,
-                                (x, y + LAYOUT['card_height'] + 5),
-                                "Nicht dein Zug",
-                                COLORS['text_secondary']
-                            )
-                    
-                    # Click handling - check conditions more thoroughly
-                    if events:
-                        for event in events:
-                            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                                if card_rect.collidepoint(event.pos):
-                                    print(f"Card clicked at ({row_idx}, {col_idx}) - is_my_turn: {is_my_turn}, initial_phase: {self.initial_phase}")
-                                    
-                                    # Allow interaction in initial phase or on our turn
-                                    if self.initial_phase or is_my_turn:
-                                        return self._handle_card_click(row_idx, col_idx, card)
-                                    else:
-                                        print("Not your turn and not in initial phase")
-                                        return None
-                            elif event.type == pygame.MOUSEMOTION:
-                                if card_rect.collidepoint(event.pos):
-                                    current_hovered_card = (row_idx, col_idx, card)
-        
-        # Update hover state at the end
-        self.hovered_card = current_hovered_card
-        
-        return None
-    
-    def _handle_card_click(self, row, col, card):
-        """Behandelt Kartenklicks"""
-        # Don't allow interaction with removed cards
-        if card is None:
-            print(f"Cannot interact with removed card at ({row}, {col})")
-            return None
-            
-        if self.initial_phase:
-            # In initial phase, select cards for flipping (don't flip immediately)
-            if not card.get_visible():
-                print(f"Selected card at ({row}, {col}) for flipping during initial phase")
-                # Reset any previous selections to avoid multiple selections
-                self.selected_position = None
-                self.selected_card_for_flip = (row, col)
-                return None
-            else:
-                print("Card already visible during initial phase - cannot flip again")
-                return None
-        
-        elif self.draw_pile_checked:
-            # Special mode: draw pile is checked, player can choose between swap or flip
-            # Allow both actions for ALL cards (visible and hidden)
-            if not card.get_visible():
-                # Hidden card - can be flipped
-                print(f"Draw pile checked - choosing to flip hidden card at ({row}, {col})")
-                self.selected_card_for_flip = (row, col)
-                self.selected_position = None
-                return None
-            else:
-                # Visible card - can be swapped (set position for swapping, don't execute immediately)
-                print(f"Draw pile checked - choosing to swap visible card at ({row}, {col})")
-                self.selected_position = (row, col)
-                self.selected_card_for_flip = None
-                # Don't execute the action immediately, let the user confirm by clicking draw pile again
-                return None
-        
-        elif self.card_in_hand:
-            # Player has card in hand - place it
-            print(f"Placing card at position ({row}, {col})")
-            self.card_in_hand = False
-            self.selected_position = None
-            self.selected_card_for_flip = None
-            return None  # Server handles placement automatically
-        
-        elif not card.get_visible():
-            # Face-down card in normal game phase - can be flipped OR selected for discard pile swap
-            print(f"Selected face-down card at ({row}, {col}) - can be flipped or swapped with discard pile")
-            # Reset any previous selections to avoid multiple selections
-            self.selected_position = None
-            self.selected_card_for_flip = (row, col)
-            return None
-        
-        else:
-            # Face-up card in normal game phase - can be selected for discard pile swap
-            print(f"Selected face-up card at ({row}, {col}) for discard pile swap")
-            # Reset any previous selections to avoid multiple selections
-            self.selected_card_for_flip = None
-            self.selected_position = (row, col)
-            return None
-    
-    def _render_other_players(self, snapshot):
-        """Rendert andere Spieler"""
-        players = snapshot.get("Players", [])
-        other_players = [p for p in players if p.name != self.client_name]
-        
-        start_x = self.WIDTH - 600
-        start_y = 50
-        
-        for i, player in enumerate(other_players):
-            y_offset = i * 120
-            
-            # Player name
-            FONTS['normal'].render_to(
-                self.screen,
-                (start_x, start_y + y_offset),
-                f"Spieler: {player.name}",
-                COLORS['text_primary']
-            )
             
             # Handle card clicks
             card_action = self.event_handler.handle_game_card_click(
@@ -930,9 +420,13 @@ class SkyjoGUI:
         self.game_name = self.widget_manager.get_widget_text('host_game', 'game_textbox').strip()
         
         if not self.client_name or not self.game_name:
+            print("Fehler: Name oder Spielname ist leer")
             return
         
         try:
+            print(f"Verbinde zu Server: {self.server_ip}:65111")
+            print(f"Spieler: {self.client_name}, Spiel: {self.game_name}, Max Players: {self.max_players}")
+            
             self.sock = network.connect_to_server(
                 self.client_name, self.game_name, self.max_players, self.server_ip
             )
@@ -940,9 +434,11 @@ class SkyjoGUI:
             if self.sock:
                 self.sock.settimeout(2.0)  # Increase timeout to 2 seconds
                 self.menu_state = Menu_State.GAME
+                print("Erfolgreich verbunden!")
                 
         except Exception as e:
-            pass
+            print(f"Fehler beim Verbinden: {e}")
+            self.sock = None
     
     def _on_back_clicked(self):
         """Zurück zum Hauptmenü"""
@@ -978,10 +474,11 @@ class SkyjoGUI:
         try:
             test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             test_sock.settimeout(2.0)
-            test_sock.connect((self.server_ip, 65432))
+            test_sock.connect((self.server_ip, 65111))
             test_sock.close()
             return True
-        except Exception:
+        except Exception as e:
+            print(f"Verbindungstest fehlgeschlagen: {e}")
             return False
     
     def get_state(self):
