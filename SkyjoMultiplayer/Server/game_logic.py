@@ -313,7 +313,7 @@ def check_for_permission(game_dict, playername, gamename, player_order):
     ### Berechtigungslogik: ###
 
     if can_make_move or round_start:
-        if player_order == "Take from Discard Pile" and not client_game.draw_pile[0].visible and client_game.discard_pile[0]:
+        if player_order == "Take from Discard Pile" and client_game.discard_pile[0]:
             if not round_start:
                 permission = True
         elif player_order == "Check Draw Pile":
