@@ -5,6 +5,10 @@ import pygame
 from pygame import freetype
 from Client.MenuState import Menu_State
 from Client import network
+from Client.GameRenderer import GameRenderer
+from Client.WidgetManager import WidgetManager
+from Client.EventHandler import EventHandler
+from Client.GameStateManager import GameStateManager
 from Common import *
 import socket
 
@@ -24,6 +28,8 @@ COLORS = {
     'error': (200, 0, 0),           # Red
     'selected': (255, 255, 0),      # Yellow
     'button_bg': (240, 240, 240),   # Light gray
+    'bg_primary': (255, 255, 255),  # White - for primary background
+    'bg_secondary': (220, 220, 220), # Light gray - for secondary background
 }
 
 FONTS = {
@@ -70,29 +76,32 @@ class SkyjoGUI:
         self.max_players = 2
         self.sock = None
         
-        # Skyjo Game State
-        self.selected_position = None
-        self.card_in_hand = False
-        self.current_action = None
-        self.initial_phase = True  # Tracks if we're in initial card-flipping phase
+        # Initialize helper classes
+        self.game_state = GameStateManager()
+        self.widget_manager = WidgetManager(screen, self.COLORS, self.LAYOUT)
+        self.event_handler = EventHandler(screen, self.COLORS, self.LAYOUT)
+        self.game_renderer = None  # Will be initialized after card images are loaded
+        
+        # GUI State for hover effects
         self.hovered_card = None  # Currently hovered card position
         self.hovered_pile = None  # Currently hovered pile ("draw" or "discard")
-        self.draw_pile_checked = False  # Tracks if draw pile top card is visible
-        self.selected_card_for_flip = None  # Currently selected card that can be flipped
-        self.flip_button_rect = None  # Manual flip button rect for click detection
-        
-        # UI Components
-        self.widgets = {
-            'main_menu': {},
-            'host_game': {},
-            'game': {}
-        }
         
         # Card Images
         self.card_images = {}
         
-        # Initialize UI
-        self._create_all_widgets()
+        # Set up widget callbacks
+        self._setup_widget_callbacks()
+    
+    def _setup_widget_callbacks(self):
+        """Setzt die Callbacks für alle Widgets"""
+        # Main menu callbacks
+        self.widget_manager.set_widget_callback('main_menu', 'ip_textbox', self._on_connect_clicked)
+        self.widget_manager.set_widget_callback('main_menu', 'connect_button', self._on_connect_clicked)
+        self.widget_manager.set_widget_callback('main_menu', 'exit_button', self._on_exit_clicked)
+        
+        # Host game callbacks
+        self.widget_manager.set_widget_callback('host_game', 'start_button', self._on_start_clicked)
+        self.widget_manager.set_widget_callback('host_game', 'back_button', self._on_back_clicked)
     
     def load_card_images(self):
         """Lädt alle Kartenbilder"""
@@ -103,147 +112,20 @@ class SkyjoGUI:
                 # Skaliere Bilder auf einheitliche Größe
                 scaled_image = pygame.transform.scale(card_image, (LAYOUT['card_width'], LAYOUT['card_height']))
                 self.card_images[str(card_value)] = scaled_image
-            print("Kartenbilder erfolgreich geladen")
+            
+            # Initialize GameRenderer after card images are loaded
+            self.game_renderer = GameRenderer(self.screen, self.COLORS, self.FONTS, self.LAYOUT, self.card_images)
+            
             return True
         except Exception as e:
-            print(f"Fehler beim Laden der Kartenbilder: {e}")
             return False
-    
-    def _create_all_widgets(self):
-        """Erstellt alle UI Widgets"""
-        self._create_main_menu_widgets()
-        self._create_host_game_widgets()
-        self._create_game_widgets()
-    
-    def _create_main_menu_widgets(self):
-        """Erstellt Main Menu Widgets"""
-        center_x = self.WIDTH // 2
-        center_y = self.HEIGHT // 2
-        
-        self.widgets['main_menu'] = {
-            'ip_textbox': textbox.TextBox(
-                self.screen,
-                x=center_x - LAYOUT['textbox_width'] // 2,
-                y=center_y - 100,
-                width=LAYOUT['textbox_width'],
-                height=LAYOUT['textbox_height'],
-                placeholderText='Server IP eingeben (z.B. 127.0.0.1)',
-                fontSize=20,
-                onSubmit=self._on_connect_clicked
-            ),
-            'connect_button': button.Button(
-                self.screen,
-                text='Mit Server verbinden',
-                fontSize=20,
-                x=center_x - LAYOUT['button_width'] // 2,
-                y=center_y + 20,
-                width=LAYOUT['button_width'],
-                height=LAYOUT['button_height'],
-                onClick=self._on_connect_clicked
-            ),
-            'exit_button': button.Button(
-                self.screen,
-                text='Beenden',
-                fontSize=20,
-                x=center_x - LAYOUT['button_width'] // 2,
-                y=center_y + 100,
-                width=LAYOUT['button_width'],
-                height=LAYOUT['button_height'],
-                onClick=self._on_exit_clicked
-            )
-        }
-    
-    def _create_host_game_widgets(self):
-        """Erstellt Host Game Widgets"""
-        center_x = self.WIDTH // 2
-        start_y = 120
-        spacing = 80
-        
-        self.widgets['host_game'] = {
-            'name_textbox': textbox.TextBox(
-                self.screen,
-                x=center_x - LAYOUT['textbox_width'] // 2,
-                y=start_y,
-                width=LAYOUT['textbox_width'],
-                height=LAYOUT['textbox_height'],
-                placeholderText='Dein Name',
-                fontSize=20
-            ),
-            'game_textbox': textbox.TextBox(
-                self.screen,
-                x=center_x - LAYOUT['textbox_width'] // 2,
-                y=start_y + spacing,
-                width=LAYOUT['textbox_width'],
-                height=LAYOUT['textbox_height'],
-                placeholderText='Spielname',
-                fontSize=20
-            ),
-            'players_slider': slider.Slider(
-                self.screen,
-                x=center_x - LAYOUT['slider_width'] // 2,
-                y=start_y + spacing * 3 + 40,
-                width=LAYOUT['slider_width'],
-                height=LAYOUT['slider_height'],
-                min=0, max=2, step=1, initial=0
-            ),
-            'start_button': button.Button(
-                self.screen,
-                text='Spiel starten',
-                fontSize=20,
-                x=center_x - LAYOUT['button_width'] // 2,
-                y=self.HEIGHT - 160,
-                width=LAYOUT['button_width'],
-                height=LAYOUT['button_height'],
-                onClick=self._on_start_game_clicked
-            ),
-            'back_button': button.Button(
-                self.screen,
-                text='Zurück',
-                fontSize=20,
-                x=center_x - LAYOUT['button_width'] // 2,
-                y=self.HEIGHT - 80,
-                width=LAYOUT['button_width'],
-                height=LAYOUT['button_height'],
-                onClick=self._on_back_clicked
-            )
-        }
-    
-    def _create_game_widgets(self):
-        """Erstellt Game Widgets"""
-        button_y = self.HEIGHT - 80
-        spacing = LAYOUT['button_width'] + 40
-        center_x = self.WIDTH // 2
-        
-        self.widgets['game'] = {
-            'end_game_button': button.Button(
-                self.screen,
-                text='Spiel beenden',
-                fontSize=16,
-                x=center_x - spacing - 50,  # Mehr Abstand nach links
-                y=button_y,
-                width=LAYOUT['button_width'] - 40,  # Etwas schmaler
-                height=LAYOUT['button_height'],
-                onClick=self._on_end_game_clicked
-            ),
-            'leave_button': button.Button(
-                self.screen,
-                text='Spiel verlassen',
-                fontSize=16,
-                x=center_x + 90,  # Mehr Abstand nach rechts
-                y=button_y,
-                width=LAYOUT['button_width'] - 40,
-                height=LAYOUT['button_height'],
-                onClick=self._on_leave_game_clicked
-            )
-        }
     
     # =================== RENDERING METHODS ===================
     
     def render_main_menu(self):
         """Rendert das Hauptmenü"""
-        print("Rendering main menu")
-        self._show_widgets('main_menu')
-        self._hide_widgets('host_game', 'game')
+        self.widget_manager.show_widgets('main_menu')
+        self.widget_manager.hide_widgets('host_game', 'game')
         
         # Title
         title_rect = FONTS['title'].get_rect("Skyjo Multiplayer")
@@ -274,9 +156,8 @@ class SkyjoGUI:
     
     def render_host_game_menu(self):
         """Rendert das Host Game Menü"""
-        print("Rendering host game menu")
-        self._show_widgets('host_game')
-        self._hide_widgets('main_menu', 'game')
+        self.widget_manager.show_widgets('host_game')
+        self.widget_manager.hide_widgets('main_menu', 'game')
         
         # Title
         title_rect = FONTS['title'].get_rect("Neues Spiel erstellen")
@@ -288,7 +169,7 @@ class SkyjoGUI:
         )
         
         # Max Players Label
-        self.max_players = self.widgets['host_game']['players_slider'].getValue() + 2
+        self.max_players = self.widget_manager.get_widget_value('host_game', 'players_slider') + 2
         players_text = f"Maximale Spielerzahl: {self.max_players}"
         FONTS['normal'].render_to(
             self.screen,
@@ -320,8 +201,8 @@ class SkyjoGUI:
         """Rendert das Spielfeld"""
         if not snapshot:
             # Show waiting message
-            self._show_widgets('game')
-            self._hide_widgets('main_menu', 'host_game')
+            self.widget_manager.show_widgets('game')
+            self.widget_manager.hide_widgets('main_menu', 'host_game')
             
             FONTS['subtitle'].render_to(
                 self.screen,
@@ -352,95 +233,13 @@ class SkyjoGUI:
             )
             return None
         
-        # Check if we're in initial phase
-        my_player = self._get_my_player(snapshot)
-        if my_player:
-            flipped_cards = self._count_flipped_cards(my_player)
-            self.initial_phase = flipped_cards < 2
-        else:
-            # If we can't find our player, assume we're in initial phase
-            self.initial_phase = True
-            
-        self._show_widgets('game')
-        self._hide_widgets('main_menu', 'host_game')
-        
-        active_player = snapshot.get("Active")
-        is_my_turn = (active_player == self.client_name)
-        
-        # Update action button visibility
-        self._update_action_button_visibility(is_my_turn)
-        
-        # Update hover state based on mouse position
-        self._update_hover_state(events, is_my_turn)
-        
-        # Game Header
-        self._render_game_header(snapshot, is_my_turn)
-        
-        # Game Instructions
-        self._render_game_instructions(is_my_turn)
-        
-        # Draw and Discard Piles
-        action = self._render_piles(snapshot, events, is_my_turn)
-        if action:
-            return action
-        
-        # Player Cards
-        action = self._render_player_cards(snapshot, events, is_my_turn)
-        if action:
-            return action
-        
-        # Other Players
-        self._render_other_players(snapshot)
-        
-        # Render buttons last to ensure they're on top
-        self._render_action_buttons(is_my_turn)
-        
-        # Check for manual flip button clicks
-        if events and self.flip_button_rect:
-            for event in events:
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.flip_button_rect.collidepoint(event.pos):
-                        print(f"Manual flip button clicked for card {self.selected_card_for_flip}")
-                        self.current_action = ("Flip Card", self.selected_card_for_flip)
-                        # Reset selections and draw pile state after flip action
-                        self.selected_card_for_flip = None
-                        self.selected_position = None
-                        self.draw_pile_checked = False  # Reset draw pile state after flip
-                        return self.current_action
-        
-        return None
-    
-    def _render_action_buttons(self, is_my_turn):
-        """Rendert Action Buttons unter den Stapeln"""
-        # Manual flip button when card is selected and action is possible
-        # Show in initial phase (any player) or during normal game when draw pile is checked
-        show_flip_button = (self.selected_card_for_flip and 
-                           (self.initial_phase or (is_my_turn and self.draw_pile_checked)))
-        
-        if show_flip_button:
-            # Position under the piles
-            pile_y = 300
-            button_x = self.WIDTH - 375  # Centered between draw and discard pile
-            button_y = pile_y + LAYOUT['card_height'] + 40  # Below the piles
-            button_w = 200
-            button_h = 50
-            
-            # Button background - grau statt grün
-            button_rect = pygame.Rect(button_x, button_y, button_w, button_h)
-            pygame.draw.rect(self.screen, COLORS['button_bg'], button_rect)
-            pygame.draw.rect(self.screen, COLORS['text_primary'], button_rect, 2)
-            
-            # Button text
-            button_text = "Karte umdrehen"
-            text_rect = FONTS['button'].get_rect(button_text)
-            text_x = button_x + (button_w - text_rect.width) // 2
-            text_y = button_y + (button_h - text_rect.height) // 2
-            
-            FONTS['button'].render_to(
+        # Game not fully initialized
+        if not self.game_renderer:
+            FONTS['normal'].render_to(
                 self.screen,
-                (text_x, text_y),
-                button_text,
-                COLORS['text_primary']
+                (50, 250),
+                "Lade Spielkomponenten...",
+                COLORS['warning']
             )
             
             # Store button rect for click detection
@@ -761,6 +560,80 @@ class SkyjoGUI:
         if not current_player:
             return None
         
+        is_my_turn = self.game_state.is_my_turn(snapshot, self.client_name)
+        
+        # Reset draw pile state if it's not our turn
+        if not is_my_turn and self.game_state.draw_pile_checked:
+            self.game_state.reset_draw_pile_state()
+        
+        # Render game components using GameRenderer
+        self.game_renderer.render_game_header(
+            snapshot, self.client_name, self.game_name, is_my_turn, 
+            self.game_state.initial_phase
+        )
+        
+        instruction_text = self.game_state.get_instruction_text(
+            is_my_turn, self.game_state.initial_phase, 
+            self.game_state.draw_pile_checked, self.game_state.selected_card
+        )
+        self.game_renderer.render_game_instructions(
+            instruction_text
+        )
+        
+        # Render piles and get rects for event handling
+        draw_rect, discard_rect = self.game_renderer.render_piles(
+            snapshot, self.game_state.draw_pile_checked, self.hovered_pile,
+            is_my_turn, self.game_state.initial_phase
+        )
+        
+        # Render player cards and get rects for event handling
+        self.hovered_card, card_rects = self.game_renderer.render_player_cards(
+            snapshot, self.client_name, self.game_state.selected_card,
+            is_my_turn, self.game_state.initial_phase, self.game_state.draw_pile_checked
+        )
+        
+        # Render other players
+        self.game_renderer.render_other_players(snapshot, self.client_name)
+        
+        # Render action buttons and get flip button rect
+        flip_button_rect = self.game_renderer.render_action_buttons(
+            self.game_state.selected_card, self.game_state.initial_phase,
+            is_my_turn, self.game_state.draw_pile_checked
+        )
+        
+        # Handle events using EventHandler
+        if events:
+            # Handle flip button click
+            flip_action = self.event_handler.handle_flip_button_click(
+                events, flip_button_rect, self.game_state.selected_card
+            )
+            if flip_action == "flip_card":
+                action = self.game_state.process_card_action(
+                    "flip_card", self.game_state.selected_card['position']
+                )
+                if action:
+                    self.game_state.clear_selection()  # Reset selection after command
+                    return action
+            
+            # Handle pile clicks for draw pile
+            pile_action = self.event_handler.handle_pile_click(
+                events, draw_rect, discard_rect, self.game_state.selected_card,
+                is_my_turn, self.game_state.initial_phase, self.game_state.draw_pile_checked
+            )
+            if pile_action == "draw_pile_click":
+                self.game_state.draw_pile_checked = True
+                return ("Check Draw Pile", True)
+            elif pile_action == "draw_pile_swap":
+                if self.game_state.selected_card['position']:
+                    pos = self.game_state.selected_card['position']
+                    self.game_state.clear_selection()
+                    self.game_state.draw_pile_checked = False  # Reset draw pile state after swap
+                    return ("Take from Draw Pile", pos)
+            elif pile_action == "discard_pile_swap":
+                if self.game_state.selected_card['position']:
+                    pos = self.game_state.selected_card['position']
+                    self.game_state.clear_selection()
+                    return ("Take from Discard Pile", pos)
         # Card grid positioning
         grid_start_x = 50
         grid_start_y = 200
@@ -1015,142 +888,64 @@ class SkyjoGUI:
                 COLORS['text_primary']
             )
             
-            # Small card grid
-            card_size = 25
-            for row_idx, card_row in enumerate(player.card_deck):
-                for col_idx, card in enumerate(card_row):
-                    x = start_x + col_idx * (card_size + 2)
-                    y = start_y + y_offset + 30 + row_idx * (card_size + 2)
-                    
-                    # Handle removed cards (None)
-                    if card is None:
-                        # Draw subtle border and X for removed cards
-                        pygame.draw.rect(self.screen, COLORS['button_bg'], (x, y, card_size, card_size))
-                        pygame.draw.rect(self.screen, COLORS['text_secondary'], (x, y, card_size, card_size), 1)
-                        # Draw small X
-                        pygame.draw.line(self.screen, COLORS['text_secondary'], (x + 5, y + 5), (x + card_size - 5, y + card_size - 5), 1)
-                        pygame.draw.line(self.screen, COLORS['text_secondary'], (x + card_size - 5, y + 5), (x + 5, y + card_size - 5), 1)
-                    elif card.get_visible():
-                        color = COLORS['card_bg']
-                        text_color = COLORS['text_primary']
-                        text = str(card.get_value())
-                        pygame.draw.rect(self.screen, color, (x, y, card_size, card_size))
-                        pygame.draw.rect(self.screen, COLORS['text_primary'], (x, y, card_size, card_size), 1)
-                        
-                        if len(text) <= 2:
-                            FONTS['small'].render_to(
-                                self.screen,
-                                (x + 2, y + 2),
-                                text,
-                                text_color
-                            )
-                    else:
-                        color = COLORS['text_secondary']
-                        text_color = COLORS['card_bg']
-                        text = "?"
-                        pygame.draw.rect(self.screen, color, (x, y, card_size, card_size))
-                        pygame.draw.rect(self.screen, COLORS['text_primary'], (x, y, card_size, card_size), 1)
-                        
-                        if len(text) <= 2:
-                            FONTS['small'].render_to(
-                                self.screen,
-                                (x + 2, y + 2),
-                                text,
-                                text_color
-                            )
-    
-    # =================== WIDGET MANAGEMENT ===================
-    
-    def _show_widgets(self, *widget_groups):
-        """Zeigt Widget-Gruppen an"""
-        for group in widget_groups:
-            for widget in self.widgets[group].values():
-                widget.show()
-    
-    def _hide_widgets(self, *widget_groups):
-        """Versteckt Widget-Gruppen"""
-        for group in widget_groups:
-            for widget in self.widgets[group].values():
-                widget.hide()
-    
-    def _update_action_button_visibility(self, is_my_turn):
-        """Aktualisiert die Sichtbarkeit der Aktionsbuttons"""
-        # Manual button rendering is handled in _render_action_buttons()
-        # This method is kept for consistency but no longer needed
-        pass
-    
-    def _update_hover_state(self, events, is_my_turn):
-        """Aktualisiert den Hover-Zustand basierend auf Mausposition"""
-        mouse_pos = pygame.mouse.get_pos()
-        
-        # Reset pile hover states
-        self.hovered_pile = None
-        
-        # Allow card hovering always (for better visual feedback)
-        # Card hover will be reset in _render_player_cards if mouse is not over any card
-        
-        # In initial phase, don't check piles, only allow card interactions
-        if self.initial_phase:
-            return
-        
-        # In normal game phase, check pile hovering
-        if is_my_turn:
-            # Check if mouse is over piles
-            pile_y = 300
-            draw_x = self.WIDTH - 300
-            discard_x = self.WIDTH - 450
+            # Handle card clicks
+            card_action = self.event_handler.handle_game_card_click(
+                events, card_rects, self.game_state.selected_card,
+                is_my_turn, self.game_state.initial_phase, self.game_state.draw_pile_checked
+            )
             
-            draw_rect = pygame.Rect(draw_x, pile_y, LAYOUT['card_width'], LAYOUT['card_height'])
-            discard_rect = pygame.Rect(discard_x, pile_y, LAYOUT['card_width'], LAYOUT['card_height'])
+            # Process card actions
+            if card_action == "clear_selection":
+                self.game_state.clear_selection()
+            elif card_action and len(card_action) >= 2:
+                action_type = card_action[0]
+                position = card_action[1]
+                action_param = card_action[2] if len(card_action) > 2 else None
+                
+                if action_type == "select_card":
+                    self.game_state.set_selection(position, action_param)
             
-            if draw_rect.collidepoint(mouse_pos):
-                self.hovered_pile = "draw"
-            elif discard_rect.collidepoint(mouse_pos):
-                self.hovered_pile = "discard"
+            # Update hover state
+            self.hovered_card, self.hovered_pile = self.event_handler.update_hover_state(
+                events, card_rects, draw_rect, discard_rect, 
+                is_my_turn, self.game_state.initial_phase
+            )
+        
+        return None
     
     # =================== EVENT HANDLERS ===================
     
     def _on_connect_clicked(self):
         """Verbindung zum Server"""
-        self.server_ip = self.widgets['main_menu']['ip_textbox'].getText().strip()
+        self.server_ip = self.widget_manager.get_widget_text('main_menu', 'ip_textbox').strip()
         if not self.server_ip:
-            print("Bitte Server IP eingeben")
             return
         
         if self._test_server_connection():
-            print(f"Server {self.server_ip} ist erreichbar")
             self.menu_state = Menu_State.HOST_GAME
-        else:
-            print(f"Server {self.server_ip} ist nicht erreichbar")
     
-    def _on_start_game_clicked(self):
+    def _on_start_clicked(self):
         """Startet das Spiel"""
-        self.client_name = self.widgets['host_game']['name_textbox'].getText().strip()
-        self.game_name = self.widgets['host_game']['game_textbox'].getText().strip()
+        self.client_name = self.widget_manager.get_widget_text('host_game', 'name_textbox').strip()
+        self.game_name = self.widget_manager.get_widget_text('host_game', 'game_textbox').strip()
         
         if not self.client_name or not self.game_name:
-            print("Bitte Name und Spielname eingeben")
             return
         
         try:
-            print(f"Starte Spiel '{self.game_name}' als {self.client_name}")
             self.sock = network.connect_to_server(
                 self.client_name, self.game_name, self.max_players, self.server_ip
             )
             
             if self.sock:
                 self.sock.settimeout(2.0)  # Increase timeout to 2 seconds
-                print("Mit Server verbunden!")
                 self.menu_state = Menu_State.GAME
-            else:
-                print("Verbindung zum Server fehlgeschlagen")
                 
         except Exception as e:
-            print(f" Verbindungsfehler: {e}")
+            pass
     
     def _on_back_clicked(self):
         """Zurück zum Hauptmenü"""
-        print("Back button clicked - returning to main menu")
         # Reset state first
         self.server_ip = ""
         self.client_name = ""
@@ -1162,50 +957,19 @@ class SkyjoGUI:
         
         # Reset main menu widgets
         self._reset_main_menu_widgets()
-        
-        print(f"Menu state changed to: {self.menu_state}")
     
     def _reset_main_menu_widgets(self):
         """Resettet Main Menu Widgets"""
-        # Clear textbox by setting text to empty
-        if 'ip_textbox' in self.widgets['main_menu']:
-            self.widgets['main_menu']['ip_textbox'].setText("")
+        self.widget_manager.set_widget_text('main_menu', 'ip_textbox', "")
     
     def _reset_host_game_widgets(self):
         """Resettet Host Game Widgets"""
-        # Clear textboxes by setting text to empty
-        if 'name_textbox' in self.widgets['host_game']:
-            self.widgets['host_game']['name_textbox'].setText("")
-        if 'game_textbox' in self.widgets['host_game']:
-            self.widgets['host_game']['game_textbox'].setText("")
+        self.widget_manager.set_widget_text('host_game', 'name_textbox', "")
+        self.widget_manager.set_widget_text('host_game', 'game_textbox', "")
     
     def _on_exit_clicked(self):
         """Spiel beenden"""
-        print("Spiel wird beendet...")
         self.running = False
-    
-    def _on_flip_card_clicked(self):
-        """Flip the selected card"""
-        if self.selected_card_for_flip:
-            print(f"Flipping card at {self.selected_card_for_flip}")
-            self.current_action = ("Flip Card", self.selected_card_for_flip)
-            # Reset ALL selections and draw pile state after flipping
-            self.selected_card_for_flip = None
-            self.selected_position = None
-            self.draw_pile_checked = False  # Reset draw pile state after flip
-        else:
-            print("ERROR: No card selected for flipping when button was clicked!")
-    
-    def _on_end_game_clicked(self):
-        """Spiel beenden"""
-        print("Ending game")
-        self.current_action = ("End Game", True)
-    
-    def _on_leave_game_clicked(self):
-        """Spiel verlassen"""
-        print("Leaving game")
-        self.current_action = ("Leave Game", True)
-        self.menu_state = Menu_State.MAIN_MENU
     
     # =================== UTILITY METHODS ===================
     
@@ -1233,36 +997,13 @@ class SkyjoGUI:
     
     def get_action(self):
         """Gibt und resettet die aktuelle Aktion"""
-        action = self.current_action
-        self.current_action = None
+        action = self.game_state.current_action
+        if action:
+            self.game_state.reset_after_action()  # Reset selection and action after retrieval
         return action
     
     def reset_game_state(self):
         """Resettet Spielzustand"""
-        self.selected_position = None
-        self.card_in_hand = False
-        self.current_action = None
-        self.initial_phase = True
+        self.game_state.reset_turn_state()
         self.hovered_card = None
         self.hovered_pile = None
-        self.draw_pile_checked = False
-        self.selected_card_for_flip = None
-        self.flip_button_rect = None
-    
-    def _get_my_player(self, snapshot):
-        """Findet den eigenen Spieler im Snapshot"""
-        players = snapshot.get("Players", [])
-        for player in players:
-            if player.name == self.client_name:
-                return player
-        return None
-    
-    def _count_flipped_cards(self, player):
-        """Zählt aufgedeckte Karten eines Spielers"""
-        flipped_cards = 0
-        for row in player.card_deck:
-            for card in row:
-                # Skip removed cards (None)
-                if card is not None and card.get_visible():
-                    flipped_cards += 1
-        return flipped_cards

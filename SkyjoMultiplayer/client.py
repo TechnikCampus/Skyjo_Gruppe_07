@@ -63,18 +63,10 @@ def main_game_loop():
     # Add new commands to send_list
     if new_commands:
         send_list.extend(new_commands)
-        print(f"Added {len(new_commands)} commands to send_list. Total: {len(send_list)}")
-    
-    # Debug: Show current send_list state
-    if send_list:
-        print(f"Commands ready to send: {send_list}")
-    # No automatic commands - let the player initiate actions
 
 def connection_handler():
     """Handles server communication in background thread"""
     global game_state, send_list
-    
-    print("Connection handler started")
     
     while game_state['running']:
         # Only communicate when in game and connected
@@ -85,12 +77,9 @@ def connection_handler():
             time.sleep(0.01)  # Reduced sleep time for faster response
             continue
         
-        print(f"Connection handler active - send_list has {len(send_list)} items")
-        
         try:
             # Send commands if any
             if send_list:
-                print(f"Sending to server: {send_list}")
                 clnt.send_to_server(
                     game_state['sock'], 
                     send_list, 
@@ -102,17 +91,9 @@ def connection_handler():
                 try:
                     received = clnt.receive_from_server(game_state['sock'])
                 except Exception as e:
-                    print(f"Error receiving from server: {e}")
                     received = None
                 
-                if received and received != "Nichts gesendet vom Server":
-                    print(f"Received valid data from server - Type: {type(received)}")
-                    # Debug: Show what we actually received
-                    if isinstance(received, dict):
-                        print(f"  Active player: {received.get('Active')}")
-                        print(f"  Players count: {len(received.get('Players', []))}")
-                        print(f"  Running: {received.get('Running')}")
-                    
+                if received and received != "Nichts gesendet vom Server":                   
                     # Update game snapshot
                     game_state['snapshot'] = {
                         "Active": received.get("Active"),
@@ -126,21 +107,14 @@ def connection_handler():
                     
                     # Check for game end conditions
                     if ("Leave Game", True) in send_list:
-                        print("Left the game!")
                         game_state['menu_state'] = Menu_State.MAIN_MENU
                         gui.reset_game_state()
                     
                     if not received.get("Running", True):
-                        print("Game ended!")
                         game_state['menu_state'] = Menu_State.MAIN_MENU
                         gui.reset_game_state()
-                elif received is None:
-                    print("Server communication failed - connection may be lost")
-                else:
-                    print(f"Server says: {received}")
                 
                 # Clear sent commands
-                print(f"Clearing {len(send_list)} sent commands")
                 send_list.clear()
             
             else:
@@ -149,10 +123,6 @@ def connection_handler():
                     received = clnt.receive_from_server(game_state['sock'])
                     
                     if received and received != "Nichts gesendet vom Server":
-                        print(f"Server update received - Type: {type(received)}")
-                        if isinstance(received, dict):
-                            print(f"  Update: Active={received.get('Active')}, Players={len(received.get('Players', []))}")
-                        
                         game_state['snapshot'] = {
                             "Active": received.get("Active"),
                             "Players": received.get("Players"),
@@ -164,7 +134,6 @@ def connection_handler():
                         }
                         
                         if not received.get("Running", True):
-                            print("Game ended by server!")
                             game_state['menu_state'] = Menu_State.MAIN_MENU
                             gui.reset_game_state()
                     elif received is None:
@@ -203,8 +172,6 @@ def main():
     # Start background communication thread
     comm_thread = threading.Thread(target=connection_handler, daemon=True)
     comm_thread.start()
-    
-    print("Skyjo Multiplayer Client started!")
     
     # Main game loop
     while game_state['running']:
