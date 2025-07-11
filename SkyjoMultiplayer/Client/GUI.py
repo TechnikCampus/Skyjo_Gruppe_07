@@ -144,15 +144,6 @@ class SkyjoGUI:
             "Willkommen zum Skyjo Kartenspiel!",
             COLORS['text_secondary']
         )
-        
-        # Enter key hint
-        hint_text = "Tipp: Drücke Enter zum Verbinden"
-        FONTS['small'].render_to(
-            self.screen,
-            (self.WIDTH // 2 - 100, self.HEIGHT - 30),
-            hint_text,
-            COLORS['text_secondary']
-        )
     
     def render_host_game_menu(self):
         """Rendert das Host Game Menü"""
@@ -187,15 +178,6 @@ class SkyjoGUI:
                 status_text,
                 COLORS['success']
             )
-        
-        # Enter key hint
-        hint_text = "Tipp: Drücke Enter zum Spielstart"
-        FONTS['small'].render_to(
-            self.screen,
-            (self.WIDTH // 2 - 100, self.HEIGHT - 50),
-            hint_text,
-            COLORS['text_secondary']
-        )
     
     def render_game(self, snapshot=None, events=None):
         """Rendert das Spielfeld"""
