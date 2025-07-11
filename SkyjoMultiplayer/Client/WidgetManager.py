@@ -186,9 +186,4 @@ class WidgetManager:
         widget = self.get_widget(group, widget_name)
         if widget and hasattr(widget, 'setText'):
             widget.setText(text)
-    
-    def update_action_button_visibility(self, is_my_turn):
-        """Aktualisiert die Sichtbarkeit von Action Buttons"""
-        # Currently no action buttons as pygame-widgets
-        # Action buttons are rendered directly in GameRenderer
-        pass
+
