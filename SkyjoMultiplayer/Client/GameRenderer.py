@@ -26,26 +26,22 @@ class GameRenderer:
             title_text,
             self.COLORS['text_primary']
         )
+
+        player = self._get_my_player(snapshot, client_name)
         
         # Player Status
-        if initial_phase:
-            my_player = self._get_my_player(snapshot, client_name)
-            if my_player:
-                flipped_count = self._count_flipped_cards(my_player)
-                status_text = f"Spieler: {client_name} - SPIELSTART: {flipped_count}/2 Karten aufgedeckt"
-                color = self.COLORS['warning'] if flipped_count < 2 else self.COLORS['success']
-            else:
-                status_text = f"Spieler: {client_name} - SPIELSTART: Warte auf Spielerinfo..."
-                color = self.COLORS['text_secondary']
-        else:
-            status_text = f"Spieler: {client_name}"
-            color = self.COLORS['text_primary']
-        
         self.FONTS['normal'].render_to(
             self.screen,
             (50, 70),
-            status_text,
-            color
+            f"Spieler: {client_name}",
+            self.COLORS['text_primary']
+        )
+        # Player Status
+        self.FONTS['normal'].render_to(
+            self.screen,
+            (50, 100),
+            f"Scorer: {player.visible_round_score}",
+            self.COLORS['text_primary']
         )
         
         # Turn Status
@@ -62,7 +58,7 @@ class GameRenderer:
         
         self.FONTS['normal'].render_to(
             self.screen,
-            (50, 110),
+            (50, 130),
             turn_text,
             color
         )
@@ -87,8 +83,8 @@ class GameRenderer:
     def render_piles(self, snapshot, draw_pile_checked, hovered_pile, is_my_turn, initial_phase):
         """Rendert Draw und Discard Pile"""
         pile_y = 300
-        draw_x = self.WIDTH - 300
-        discard_x = self.WIDTH - 450
+        draw_x = self.WIDTH - 800
+        discard_x = self.WIDTH - 950
         
         # Draw Pile
         draw_pile = snapshot.get("Draw Pile", [])
@@ -235,11 +231,11 @@ class GameRenderer:
         players = snapshot.get("Players", [])
         other_players = [p for p in players if p.name != client_name]
         
-        start_x = self.WIDTH - 600
+        start_x = self.WIDTH - 400
         start_y = 50
         
         for i, player in enumerate(other_players):
-            y_offset = i * 120
+            y_offset = i * 220
             
             # Player name
             self.FONTS['normal'].render_to(
@@ -248,13 +244,20 @@ class GameRenderer:
                 f"Spieler: {player.name}",
                 self.COLORS['text_primary']
             )
+            #Player score
+            self.FONTS['normal'].render_to(
+                self.screen,
+                (start_x, start_y + y_offset + 30),
+                f"Score: {player.visible_round_score}",
+                self.COLORS['text_primary']
+            )
             
             # Small card grid
             card_size = 25
             for row_idx, card_row in enumerate(player.card_deck):
                 for col_idx, card in enumerate(card_row):
                     x = start_x + col_idx * (card_size + 2)
-                    y = start_y + y_offset + 30 + row_idx * (card_size + 2)
+                    y = start_y + y_offset + 60 + row_idx * (card_size + 2)
                     
                     # Handle removed cards (None)
                     if card is None:
@@ -300,7 +303,7 @@ class GameRenderer:
         flip_button_rect = None
         if show_flip_button:
             pile_y = 300
-            button_x = self.WIDTH - 375
+            button_x = self.WIDTH - 925
             button_y = pile_y + self.LAYOUT['card_height'] + 40
             button_w = 200
             button_h = 50
@@ -364,10 +367,9 @@ class GameRenderer:
                     flipped_cards += 1
         return flipped_cards
     
-    def render_endscreen_overlay(self, end_scores, client_name, snapshot=None):
-        """Rendert das Endscreen-Overlay mit Endergebnissen"""
-        print(f"DEBUG: render_endscreen_overlay called with end_scores={end_scores}, client_name={client_name}")
-        
+    # Endscreen: Not ready as if now
+    '''def render_endscreen_overlay(self, end_scores, client_name, snapshot=None):
+        """Rendert das Endscreen-Overlay mit Endergebnissen"""    
         # Semi-transparent overlay
         overlay = pygame.Surface((self.WIDTH, self.HEIGHT))
         overlay.set_alpha(180)
@@ -379,8 +381,6 @@ class GameRenderer:
         box_height = 500
         box_x = (self.WIDTH - box_width) // 2
         box_y = (self.HEIGHT - box_height) // 2
-        
-        print(f"DEBUG: Drawing endscreen box at ({box_x}, {box_y}) with size {box_width}x{box_height}")
         
         # Background box
         pygame.draw.rect(self.screen, self.COLORS['bg_secondary'], 
@@ -520,4 +520,4 @@ class GameRenderer:
             centered=True
         )
         
-        return button_rect, exit_button_rect
+        return button_rect, exit_button_rect'''

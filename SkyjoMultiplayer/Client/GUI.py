@@ -144,15 +144,6 @@ class SkyjoGUI:
             "Willkommen zum Skyjo Kartenspiel!",
             COLORS['text_secondary']
         )
-        
-        # Enter key hint
-        hint_text = "Tipp: Drücke Enter zum Verbinden"
-        FONTS['small'].render_to(
-            self.screen,
-            (self.WIDTH // 2 - 100, self.HEIGHT - 30),
-            hint_text,
-            COLORS['text_secondary']
-        )
     
     def render_host_game_menu(self):
         """Rendert das Host Game Menü"""
@@ -187,15 +178,6 @@ class SkyjoGUI:
                 status_text,
                 COLORS['success']
             )
-        
-        # Enter key hint
-        hint_text = "Tipp: Drücke Enter zum Spielstart"
-        FONTS['small'].render_to(
-            self.screen,
-            (self.WIDTH // 2 - 100, self.HEIGHT - 50),
-            hint_text,
-            COLORS['text_secondary']
-        )
     
     def render_game(self, snapshot=None, events=None):
         """Rendert das Spielfeld"""
@@ -250,13 +232,10 @@ class SkyjoGUI:
         self.widget_manager.hide_widgets('main_menu', 'host_game')
         
         # Check if game is over
-        game_running = snapshot.get("Running", True)
+        '''game_running = snapshot.get("Running", True)
         end_scores = snapshot.get("End Scores", [])
         
-        print(f"DEBUG: game_running = {game_running}, end_scores = {end_scores}")  # Debug output
-        
         if not game_running and end_scores:
-            print("DEBUG: Showing endscreen overlay")  # Debug output
             # Game is over - show endscreen overlay
             is_my_turn = self.game_state.is_my_turn(snapshot, self.client_name)
             
@@ -301,7 +280,7 @@ class SkyjoGUI:
                             self.menu_state = Menu_State.MAIN_MENU
                             return None
             
-            return None
+            return None'''
         
         is_my_turn = self.game_state.is_my_turn(snapshot, self.client_name)
         

@@ -34,12 +34,14 @@ class WidgetManager:
         """Erstellt Main Menu Widgets"""
         center_x = self.WIDTH // 2
         center_y = self.HEIGHT // 2
+        start_y = 120
+        spacing = 80
         
         self.widgets['main_menu'] = {
             'ip_textbox': textbox.TextBox(
                 self.screen,
                 x=center_x - self.LAYOUT['textbox_width'] // 2,
-                y=center_y - 100,
+                y=start_y + spacing * 3,
                 width=self.LAYOUT['textbox_width'],
                 height=self.LAYOUT['textbox_height'],
                 placeholderText='Server IP eingeben (z.B. 127.0.0.1)',
@@ -51,7 +53,7 @@ class WidgetManager:
                 text='Mit Server verbinden',
                 fontSize=20,
                 x=center_x - self.LAYOUT['button_width'] // 2,
-                y=center_y + 20,
+                y=start_y + spacing * 6,
                 width=self.LAYOUT['button_width'],
                 height=self.LAYOUT['button_height'],
                 onClick=None  # Will be set by GUI
@@ -61,7 +63,7 @@ class WidgetManager:
                 text='Beenden',
                 fontSize=20,
                 x=center_x - self.LAYOUT['button_width'] // 2,
-                y=center_y + 100,
+                y=start_y + spacing * 7,
                 width=self.LAYOUT['button_width'],
                 height=self.LAYOUT['button_height'],
                 onClick=None  # Will be set by GUI
@@ -71,6 +73,7 @@ class WidgetManager:
     def _create_host_game_widgets(self):
         """Erstellt Host Game Widgets"""
         center_x = self.WIDTH // 2
+        center_y = self.HEIGHT // 2
         start_y = 120
         spacing = 80
         
@@ -96,7 +99,7 @@ class WidgetManager:
             'players_slider': slider.Slider(
                 self.screen,
                 x=center_x - self.LAYOUT['slider_width'] // 2,
-                y=start_y + spacing * 3 + 40,
+                y=start_y + spacing * 4,
                 width=self.LAYOUT['slider_width'],
                 height=self.LAYOUT['slider_height'],
                 min=0, max=2, step=1, initial=0
@@ -106,7 +109,7 @@ class WidgetManager:
                 text='Spiel starten',
                 fontSize=20,
                 x=center_x - self.LAYOUT['button_width'] // 2,
-                y=self.HEIGHT - 160,
+                y=start_y + spacing * 6,
                 width=self.LAYOUT['button_width'],
                 height=self.LAYOUT['button_height'],
                 onClick=None  # Will be set by GUI
@@ -116,7 +119,7 @@ class WidgetManager:
                 text='Zurück',
                 fontSize=20,
                 x=center_x - self.LAYOUT['button_width'] // 2,
-                y=self.HEIGHT - 80,
+                y=start_y + spacing * 7,
                 width=self.LAYOUT['button_width'],
                 height=self.LAYOUT['button_height'],
                 onClick=None  # Will be set by GUI
