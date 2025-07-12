@@ -14,7 +14,7 @@ clock = pygame.time.Clock()
 
 client_name = str(input("Gebe hier deinen Namen ein >> "))
 client_game = str(input("Gebe hier den Namen des Spiels ein >> "))
-max_players = 4
+max_players = 2
 server_ip = "Localhost"
 
 sock = clnt.connect_to_server(client_name, client_game, max_players, server_ip)
