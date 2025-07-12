@@ -1,1 +1,0 @@
-##### Class for the different Stacks in the game #####
