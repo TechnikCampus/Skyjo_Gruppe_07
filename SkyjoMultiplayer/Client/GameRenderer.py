@@ -36,13 +36,14 @@ class GameRenderer:
             f"Spieler: {client_name}",
             self.COLORS['text_primary']
         )
-        # Player Status
-        self.FONTS['normal'].render_to(
-            self.screen,
-            (50, 100),
-            f"Scorer: {player.visible_round_score}",
-            self.COLORS['text_primary']
-        )
+        if player:
+            # Player Status
+            self.FONTS['normal'].render_to(
+                self.screen,
+                (50, 100),
+                f"Scorer: {player.visible_round_score}",
+                self.COLORS['text_primary']
+            )
         
         # Turn Status
         active_player = snapshot.get("Active")
